@@ -2,14 +2,12 @@ classdef region
   % region Summary of this class goes here
   %   Detailed explanation goes here
 
-  properties % (Access = private)
+  properties (GetAccess = public, SetAccess = protected)
     % data
     basename
     path
     id
     state
-    n_neurons
-    neurons
     spikes
     % avalanches
     spike_dt
@@ -25,6 +23,14 @@ classdef region
     %asmb_raster
   end
 
+  properties (Access = public)
+      neurons
+  end
+
+  properties (Dependent)
+      n_neurons
+  end
+
   methods
     function obj = region(basename,path,id,neurons,spikes,opt)
       % region Construct an instance of this class
@@ -36,25 +42,23 @@ classdef region
         neurons (:,1) double = []
         spikes (:,2) double = []
         opt.state (1,1) string = "all"
-        opt.n_neurons (1,1) double {mustBeInteger,mustBeNonnegative} = 0
       end
       obj.basename = basename;
       obj.path = path;
       obj.id = id;
       obj.state = opt.state;
       obj.neurons = neurons;
-      if isempty(neurons)
-        obj.n_neurons = opt.n_neurons;
-      else
-        obj.n_neurons = numel(neurons);
-      end
       obj.spikes = spikes;
     end
 
     % setter methods
 
-    function this = setNeurons(this,neurons)
-      this.neurons = neurons;
+    function this = set.neurons(this, val)
+        arguments
+            this
+            val (:,1) double
+        end
+        this.neurons = val;
     end
 
     function this = setAvalanches(this,dt,threshold,indeces,sizes)
@@ -88,24 +92,8 @@ classdef region
 
     % getter methods
 
-    function id = getId(this)
-      id = this.id;
-    end
-
-    function state = getState(this)
-      state = this.state;
-    end
-
-    function n = getNNeurons(this)
-      n = this.n_neurons;
-    end
-
-    function neurons = getNeurons(this)
-      neurons = this.neurons;
-    end
-
-    function spikes = getSpikes(this)
-      spikes = this.spikes;
+    function n = get.n_neurons(this)
+        n = numel(this.neurons);
     end
 
     function [rate,times] = getFiringRate(this,step,bin_size,opt)
@@ -127,18 +115,6 @@ classdef region
       rate = movmean(rate,n) * n; % compute number of spikes in every sliding window
       rate = rate(1:k:end); % keep only windows separated by 'step' milliseconds
       times = times(1:k:end).';
-    end
-
-    function dt = getSpikeDt(this)
-      dt = this.spike_dt;
-    end
-
-    function threshold = getAvalThreshold(this)
-      threshold = this.aval_threshold;
-    end
-
-    function indeces = getAvalIndeces(this)
-      indeces = this.aval_indeces;
     end
 
     function times = getAvalTimes(this,opt) % SHOULD ERROR IF NO avals OR no DT

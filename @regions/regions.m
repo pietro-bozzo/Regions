@@ -6,9 +6,9 @@ classdef regions
   % methods:
   %
   
-  properties
+  properties (GetAccess = public, SetAccess = protected)
     % data
-    basename        % session basename, e.g., Rat386-20180918
+    basename   % session basename, e.g., Rat386-20180918
     session_path    % path to Pietro folder in this session
     results_path    % path to results folder
     rat
@@ -384,6 +384,7 @@ classdef regions
     end
 
     function saveAval(this)
+
       % pool avalanches 
       n = strings().empty();
       sizes = [];
@@ -420,5 +421,6 @@ classdef regions
       file_name = append(this.results_path,'/',this.basename,extension,'.aval');
       writematrix([indeces,sizes],file_name,FileType='text');
     end
+
   end
 end
