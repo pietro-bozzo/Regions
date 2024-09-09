@@ -6,7 +6,7 @@ classdef regions
   % methods:
   %
   
-  properties
+  properties (GetAccess = public, SetAccess = protected)
     % data
     basename   % session basename, e.g., Rat386-20180918
     session_path    % path to Pietro folder in this session
@@ -422,6 +422,5 @@ classdef regions
       writematrix([indeces,sizes],file_name,FileType='text');
     end
 
-  
   end
 end
