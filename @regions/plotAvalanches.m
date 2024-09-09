@@ -1,5 +1,5 @@
 function plotAvalanches(this,opt)
-
+% plotAvalanches
 
       arguments
         this (1,1) regions
