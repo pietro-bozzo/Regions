@@ -1,5 +1,5 @@
-function [otsuWeights,eigenvalues,activity,t] = getICActivity(spikes,opt)
-% getICActivity Summary of this function goes here FINISH TO IMPLEMENT
+function [otsuWeights,otsuEigenvalues,activity,t] = getICActivity(spikes,opt)
+% getICActivity Perform Indipendent Component Analysis and use Otsu criteria to discard some components 
 
 arguments
   spikes (:,2) double
@@ -13,7 +13,7 @@ end
 % skip if already existing TO IMPLEMENT IF SAVING OF ICA IS NEEDED FOR SPEED
 % if opt.skip == true && exist([myFolder '/' sessionID '-weights15ms']) == 2
 %   weights = dlmread([myFolder '/' sessionID '-weights15ms']);
-%   eigenvalues = dlmread([myFolder '/' sessionID '-eigenvalues15ms']);
+%   eigenvalues = dlmread([myFolder '/' sessionID '-eigenvalues15ms']); NAME CHANGED
 %   otsuWeights = dlmread([myFolder '/' sessionID '-otsuWeights']);
 %   peaks = dlmread([myFolder '/' sessionID '-peaks']);
 %   fprintf(1,append('Skipping ',sessionID,', ICA already computed.\n'))
@@ -21,7 +21,7 @@ end
 % end
 
 if isempty(spikes)
-  [otsuWeights,eigenvalues,activity,t] = deal(NaN);
+  [otsuWeights,otsuEigenvalues,activity,t] = deal(NaN);
   return
 end
 
@@ -37,25 +37,29 @@ end
 % relabel units to a {1,...,N} set, preserving unit order
 [~,~,spikes(:,2)] = unique(spikes(:,2));
 
-% compute ICA + PCA      MAYBE REPLACE WITH f THAT ONLY DOES weights?
+% compute ICA + PCA
 [~,eigenvalues,weights] = ActivityTemplatesICA(spikes,'bins',intervals);
+eigenvalues = eigenvalues(1:size(weights,2)); % discard eigenvalues associated to rejected components
 
-% compute Otsu weigths   MUST UPDATE EIGENVALUES
-otsuWeights = []; count = 0;
-for assembly = 1 : size(weights,2)
-  thresh = multithresh(abs(weights(:,assembly)));
-  m = abs(weights(:,assembly))>thresh;
-  nNeg = sum(weights(m,assembly)<0);
+% compute Otsu weigths
+otsuWeights = [];
+otsuEigenvalues = [];
+i = 1;
+for component = 1 : size(weights,2)
+  thresh = multithresh(abs(weights(:,component)));
+  mask = abs(weights(:,component))>thresh;
+  nNeg = sum(weights(mask,component)<0);
   if nNeg == 0 % if no negative weights
-    count = count + 1;
-    otsuWeights(:,count) = weights(:,assembly);
-    otsuWeights(~m,count) = 0;
+    otsuWeights(:,i) = weights(:,component);
+    otsuWeights(~mask,i) = 0;
+    otsuEigenvalues(i) = eigenvalues(component);
+    i = i + 1;
   end
 end
 
 % compute Otsu templates
 templates = zeros(size(otsuWeights,1),size(otsuWeights,1),size(otsuWeights,2));
-for i = 1 : size(otsuWeights,2) % THIS SHOULD NOT BE A FOR
+for i = 1 : size(otsuWeights,2) % THIS SHOULD NOT BE A FOR, RATHER SOME CLEVER MATRIX MULTIPLICATION
   templates(:,:,i) = otsuWeights(:,i)*otsuWeights(:,i)';
   templates(:,:,i) = templates(:,:,i) - diag(diag(templates(:,:,i))); % remove the diagonal
 end
@@ -66,7 +70,8 @@ end
 %   intervals = [intervals;Bins(opt.restrict(i,1),opt.restrict(i,2),opt.windowsize,STEP)];
 % end
 activity = ReactivationStrength(spikes,templates,'bins',intervals);
-activity = Restrict(activity,opt.restrict);
+activity = Restrict(activity,opt.restrict); % DOES THIS LINE EVER CHANGE ANYTHING? AS I ALREADY CREATE 
+% INTERVALS USING opt.restrict
 t = activity(:,1); % save first column as time
 activity(:,1) = []; % remove first column
 

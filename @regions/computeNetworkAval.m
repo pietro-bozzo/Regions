@@ -20,9 +20,9 @@ for i = 1 : numel(this.states) % set up brain_array
       % SHOULD CHECK THAT t IS ALWAYS THE SAME
       if isempty(IC_activity)
         IC_activity = region_activity;
-      elseif any(isnan(region_activity)) % adapt size of NaN region_activity
+      elseif any(any(isnan(region_activity))) % adapt size of NaN region_activity
         IC_activity = [IC_activity,NaN(size(IC_activity,1),1)];
-      elseif all(isnan(IC_activity)) % adapt size of NaN IC_activity
+      elseif all(all(isnan(IC_activity))) % adapt size of NaN IC_activity
         IC_activity = [NaN(size(region_activity,1),size(IC_activity,2)),region_activity];
       else % cut end of activity to keep same length in time
         len = min(size(region_activity,1),size(IC_activity,1));
