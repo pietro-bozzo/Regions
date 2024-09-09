@@ -11,12 +11,11 @@ end
 for i = 1 : numel(this.states) % set up brain_array
   IC_weights = {};
   IC_activity = [];
-  k = 1;
   for j = 1 : numel(this.ids)
     if this.ids(j) ~= 0 % exclude region corresponding to whole brain
       spikes = this.regions_array(i,j).spikes;
-      [IC_weights{k},~,region_activity,t] = getICActivity(spikes,windowsize=opt.window);
-      k = k + 1;
+      [weights,~,region_activity,t] = getICActivity(spikes,windowsize=opt.window);
+      IC_weights{j} = size(region_activity,2);
       % SHOULD CHECK THAT t IS ALWAYS THE SAME
       if isempty(IC_activity)
         IC_activity = region_activity;
@@ -30,7 +29,7 @@ for i = 1 : numel(this.states) % set up brain_array
       end
     end
   end
-  this.brain_array(i,1) = brain(this.basename,this.session_path,IC_weights,opt.window,IC_activity, ...
+  this.brain_array(i,1) = brain(this.basename,this.session_path,IC_number,[],opt.window,IC_activity, ...
     state=this.states(i));
   this.brain_array(i,1) = this.brain_array(i,1).computeAvalanches(threshold=opt.threshold);
 end

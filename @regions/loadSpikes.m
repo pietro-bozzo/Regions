@@ -74,7 +74,7 @@ function this = loadSpikes(this,opt)
     % SHOULD ADD warning: these are not found FOR THE OUTPUT OF setdiff(unique(reg_ids(valid_ids)),this.ids)
   end
   brain_neurons = [];
-   k = 1;
+  k = 1;
   for i = 1 : numel(unique_ids) % get spikes for brain regions
     region_spikes = labeled_spikes(reg_ids==unique_ids(i),[1,4]);
     region_neurons = unique(region_spikes(:,2));

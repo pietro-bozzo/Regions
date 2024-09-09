@@ -1,34 +1,30 @@
-function [otsuWeights,eigenvalues,activity,t] = getICActivity(spikes,opt)
+function [otsuWeights,eigenvalues,activity,t] = getICActivity(spikes,sessionID,myFolder,opt)
 % getICActivity Summary of this function goes here FINISH TO IMPLEMENT
 
 arguments
   spikes (:,2) double
+  sessionID (1,:) char
+  myFolder (1,:) char
   opt.restrict (:,2) double {mustBeNonnegative} = []
-  opt.windowsize (1,1) double {mustBePositive} = 0.03
   opt.skip (1,1) {mustBeLogical} = false
   opt.save (1,1) {mustBeLogical} = false
-  opt.path (1,:) char = '' % path to save results to, NOT YET IMPLEMENTED
+  opt.windowsize (1,1) double {mustBePositive} = 0.03
 end
 
-% skip if already existing TO IMPLEMENT IF SAVING OF ICA IS NEEDED FOR SPEED
-% if opt.skip == true && exist([myFolder '/' sessionID '-weights15ms']) == 2
-%   weights = dlmread([myFolder '/' sessionID '-weights15ms']);
-%   eigenvalues = dlmread([myFolder '/' sessionID '-eigenvalues15ms']);
-%   otsuWeights = dlmread([myFolder '/' sessionID '-otsuWeights']);
-%   peaks = dlmread([myFolder '/' sessionID '-peaks']);
-%   fprintf(1,append('Skipping ',sessionID,', ICA already computed.\n'))
-%   return
-% end
-
-if isempty(spikes)
-  [otsuWeights,eigenvalues,activity,t] = deal(NaN);
+% skip if already existing
+if opt.skip == true && exist([myFolder '/' sessionID '-weights15ms']) == 2
+  weights = dlmread([myFolder '/' sessionID '-weights15ms']);
+  eigenvalues = dlmread([myFolder '/' sessionID '-eigenvalues15ms']);
+  otsuWeights = dlmread([myFolder '/' sessionID '-otsuWeights']);
+  peaks = dlmread([myFolder '/' sessionID '-peaks']);
+  fprintf(1,append('Skipping ',sessionID,', ICA already computed.\n'))
   return
 end
 
 % build intervals
 intervals = [];
 if isempty(opt.restrict)
-  opt.restrict = [0,spikes(end,1)];
+
 end
 for i = 1 : size(opt.restrict,1)
   intervals = [intervals;Bins(opt.restrict(i,1),opt.restrict(i,2),opt.windowsize,opt.windowsize)];
@@ -61,7 +57,7 @@ for i = 1 : size(otsuWeights,2) % THIS SHOULD NOT BE A FOR
 end
 
 % compute activation strength
-% step = 0.001; % COULD BE USED TO RECALCULATE BINS AS FOLLOWS
+step = 0.001; % COULD BE USED TO RECALCULATE BINS AS FOLLOWS
 % for i = 1 : size(opt.restrict,1)
 %   intervals = [intervals;Bins(opt.restrict(i,1),opt.restrict(i,2),opt.windowsize,STEP)];
 % end

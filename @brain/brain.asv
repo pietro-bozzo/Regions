@@ -8,7 +8,8 @@ classdef brain
     path
     state
     % Indipendent Component Analysis
-    IC_weights % list of IC weights SHOULD BE CELL ARRAY OF WEIGHT MATRICES
+    IC_number % PROBABLY USELESS ONCE WEIGHTS ARE STORES
+    ICs % list of Independent Components MAYBE USELESS, PROBABLY MATRIX OF WEIGHT MATRICES
     IC_window
     ICs_activity
     % avalanches
@@ -20,13 +21,14 @@ classdef brain
   end
 
   methods
-      function obj = brain(basename,path,IC_weights,IC_window,ICs_activity,opt)
+      function obj = brain(basename,path,IC_number,ICs,IC_window,ICs_activity,opt)
       % region Construct an instance of this class
       %   Detailed explanation goes here
       arguments
         basename (1,1) string = ""
         path (1,1) string = ""
-        IC_weights (:,1) cell = []
+        IC_number (:,1) double = []
+        ICs (:,1) double = []
         IC_window (:,1) double = []
         ICs_activity (:,:) double = []
         opt.state (1,1) string = "all"
@@ -34,7 +36,8 @@ classdef brain
       obj.basename = basename;
       obj.path = path;
       obj.state = opt.state;
-      obj.IC_weights = IC_weights;
+      obj.IC_number = IC_number;
+      obj.ICs = ICs;
       obj.IC_window = IC_window;
       obj.ICs_activity = ICs_activity;
     end
@@ -48,7 +51,7 @@ classdef brain
     function this = setAvalanches(this,dt,threshold,indeces,sizes)
       arguments
         this (1,1) brain
-        dt (1,1) double {mustBePositive} % SHOULD UPDATE PARAMETERS
+        dt (1,1) double {mustBePositive}
         threshold (1,1) double {mustBeNonnegative,mustBeLessThanOrEqual(threshold,1)}
         indeces (:,2) double
         sizes (:,1) double
@@ -184,7 +187,7 @@ classdef brain
       arguments
         this (1,1) brain
       end
-      Z = (abs(zscore(this.ICs_activity)) > this.aval_threshold).'; % binarized IC activity
+      Z = (abs(zscore(this.firing_rates)) > this.aval_threshold).'; % binarized firing rate
       X = reshape(Z(:,2:end),size(Z,1),1,size(Z,2)-1); % columns 2 to end of Z
       Y = reshape(Z(:,1:end-1),1,size(Z,1),size(Z,2)-1); % columns 1 to end - 1 of Z
       At = X.*Y; % Aijt = 1 iff Zi(t+1) = 1 and Zjt = 1
