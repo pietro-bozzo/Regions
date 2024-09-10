@@ -42,5 +42,8 @@ if opt.save
   saveas(fig,append(this.results_path,'/size_comp','.svg'),'svg')
 end
 if ~opt.show
-    close(fig)
+  if ~opt.save
+      warning('Both options ''save'' and ''show'' were not selected.')
+  end
+  close(fig)
 end

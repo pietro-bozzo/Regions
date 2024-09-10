@@ -24,5 +24,8 @@ end
 set(gca,Yscale='log',TickDir='out')
 legend(opt.states);
 if ~opt.show
+  if ~opt.save
+    warning('Both options ''save'' and ''show'' were not selected.')
+  end
   close(fig)
 end

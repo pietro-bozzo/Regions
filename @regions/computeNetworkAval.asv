@@ -8,21 +8,27 @@ arguments
   opt.save (1,1) {mustBeLogical} = false % SAVE ICA, TO IMPLEMENT (MAYBE, IF SLOW)
 end
 
+
 for i = 1 : numel(this.states) % set up brain_array
   IC_weights = {};
   IC_activity = [];
-  k = 1;.git 
+  k = 1;
+  first = true;
   for j = 1 : numel(this.ids)
     if this.ids(j) ~= 0 % exclude region corresponding to whole brain
       spikes = this.regions_array(i,j).spikes;
       [IC_weights{k},~,region_activity,t] = getICActivity(spikes,windowsize=opt.window);
+      if ~first && previous_t ~= t(1) % check that ICA produces
+        warning('IC output has non matching time')
+      end
+      first = false; previous_t = t(1); % store first time point for control
       k = k + 1;
       % SHOULD CHECK THAT t IS ALWAYS THE SAME
       if isempty(IC_activity)
         IC_activity = region_activity;
-      elseif any(isnan(region_activity)) % adapt size of NaN region_activity
+      elseif any(any(isnan(region_activity))) % adapt size of NaN region_activity
         IC_activity = [IC_activity,NaN(size(IC_activity,1),1)];
-      elseif all(isnan(IC_activity)) % adapt size of NaN IC_activity
+      elseif all(all(isnan(IC_activity))) % adapt size of NaN IC_activity
         IC_activity = [NaN(size(region_activity,1),size(IC_activity,2)),region_activity];
       else % cut end of activity to keep same length in time
         len = min(size(region_activity,1),size(IC_activity,1));

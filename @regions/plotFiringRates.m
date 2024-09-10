@@ -33,5 +33,8 @@ for j = j_indeces
   end
 end
 if ~opt.show
+  if ~opt.save
+    warning('Both options ''save'' and ''show'' were not selected.')
+  end
   close(fig)
 end

@@ -7,7 +7,7 @@ arguments
 end
 
 if opt.full
-  times = this.rate_dt/2 : this.rate_dt : (this.aval_indeces(end)-0.5)*this.rate_dt;
+  times = this.IC_window/2 : this.IC_window : (this.aval_indeces(end)-0.5)*this.IC_window;
 else
-  times = this.aval_indeces(:,1) * this.rate_dt - this.rate_dt/2;
+  times = this.aval_indeces(:,1) * this.IC_window - this.IC_window/2;
 end

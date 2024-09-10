@@ -33,6 +33,9 @@ for j = j_indeces
     print(fig,append(this.results_path,'/size_distr.',string(this.states(j)),'.svg'),'-dsvg')
   end
   if ~opt.show
+    if ~opt.save
+      warning('Both options ''save'' and ''show'' were not selected.')
+    end
     close(fig)
   end
 end

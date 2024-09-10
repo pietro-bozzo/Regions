@@ -49,5 +49,8 @@ set(gca,TickDir='out',XLim=[start;stop],YLim=[0,n_units_cum],YTick=ticks)
 xlabel('time',FontSize=14);
 ylabel('units',FontSize=14);
 if ~opt.show
+  if ~opt.save
+    warning('Both options ''save'' and ''show'' were not selected.')
+  end
   close(fig)
 end

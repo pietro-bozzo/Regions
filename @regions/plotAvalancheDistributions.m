@@ -32,6 +32,9 @@ for i = i_indeces
     saveas(fig,append(this.results_path,'/size_distr.',string(this.ids(i)),'.svg'),'svg')
   end
   if ~opt.show
+    if ~opt.save
+      warning('Both options ''save'' and ''show'' were not selected.')
+    end
     close(fig)
   end
 end
