@@ -17,6 +17,7 @@ classdef regions
     ids
     regions_array
     brain_array
+    state_timestamp
   end
   
   methods

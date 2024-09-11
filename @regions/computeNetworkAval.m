@@ -8,13 +8,14 @@ arguments
   opt.save (1,1) {mustBeLogical} = false % SAVE ICA, TO IMPLEMENT (MAYBE, IF SLOW)
 end
 
-
+f = waitbar(0,'Please wait...');
 for i = 1 : numel(this.states) % set up brain_array
   IC_weights = {};
   IC_activity = [];
   k = 1;
   first = true;
   for j = 1 : numel(this.ids)
+    waitbar((i-1 + (j-1)/numel(this.ids))/numel(this.states),f,'Loading your data');
     if this.ids(j) ~= 0 % exclude region corresponding to whole brain
       spikes = this.regions_array(i,j).spikes;
       [IC_weights{k},~,region_activity,t] = getICActivity(spikes,windowsize=opt.window);
@@ -39,3 +40,4 @@ for i = 1 : numel(this.states) % set up brain_array
     state=this.states(i));
   this.brain_array(i,1) = this.brain_array(i,1).computeAvalanches(threshold=opt.threshold);
 end
+close(f)

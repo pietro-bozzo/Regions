@@ -15,6 +15,7 @@ function this = loadSpikes(this,opt)
   end
   % load behavioral time stamps
   restrict_intervals = cell(size(this.states));
+  this.state_timestamp = restrict_intervals;
   events_path = append(fileparts(this.session_path),'/events/');
   if isfolder(append(events_path,'2021'))
     events_path = append(events_path,'2021/');
