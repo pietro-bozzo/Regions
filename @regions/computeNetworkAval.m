@@ -9,18 +9,44 @@ arguments
 end
 
 f = waitbar(0,'Please wait...');
-for i = 1 : numel(this.states) % set up brain_array
+num_states = numel(this.states);
+num_ids = numel(this.ids);
+
+% Time estimation setup
+total_iterations = num_states * num_ids;
+iteration_time = NaN(total_iterations,1); % To track each iteration's time
+
+for i = 1:num_states % set up brain_array
   IC_weights = {};
   IC_activity = [];
   k = 1;
   first = true;
-  for j = 1 : numel(this.ids)
-    waitbar((i-1 + (j-1)/numel(this.ids))/numel(this.states),f,'Loading your data');
+  for j = 1:num_ids
+    iter = (i-1) * num_ids + j; % Current iteration number
+    
+    % Time tracking for iteration
+    if iter > 1
+      iteration_time(iter) = toc(previous); % Record time for current iteration
+      previous = tic;
+    else
+        previous = tic;
+    end
+    
+    % Calculate estimated remaining time and iterations per second
+    if iter > 1
+      avg_iter_time = mean(iteration_time(max(2, iter-4):iter)); % Average time per iteration
+      remaining_time = (total_iterations - iter) * avg_iter_time;
+      it_per_sec = 1 / avg_iter_time;
+      waitbar((iter-1)/total_iterations, f, ...
+        sprintf('Computing (%.2f it/s, %d/%d, ~ %.2f s)', ...
+        it_per_sec, iter, total_iterations, remaining_time));
+    end
+    
     if this.ids(j) ~= 0 % exclude region corresponding to whole brain
       spikes = this.regions_array(i,j).spikes;
       [IC_weights{k},~,region_activity,t] = getICActivity(spikes,windowsize=opt.window);
       if ~first && previous_t ~= t(1) % check that ICA produces consistent time
-        warning('IC output has non matching time')
+        warning('IC output has non matching time');
       end
       first = false; previous_t = t(1); % store first time point for control
       k = k + 1;
@@ -40,4 +66,6 @@ for i = 1 : numel(this.states) % set up brain_array
     state=this.states(i));
   this.brain_array(i,1) = this.brain_array(i,1).computeAvalanches(threshold=opt.threshold);
 end
-close(f)
+
+close(f);
+end
