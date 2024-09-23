@@ -3,7 +3,7 @@ function this = computeNetworkAval(this,opt)
 
 arguments
   this (1,1) regions
-  opt.window (1,1) double {mustBePositive} = 0.03
+  opt.window (1,1) double {mustBePositive} = 0.01
   opt.threshold (1,1) double {mustBeNonnegative} = 2
   opt.save (1,1) {mustBeLogical} = false % SAVE ICA, TO IMPLEMENT (MAYBE, IF SLOW)
 end
@@ -36,10 +36,9 @@ for i = 1:num_states % set up brain_array
     if iter > 1
       avg_iter_time = mean(iteration_time(max(2, iter-4):iter)); % Average time per iteration
       remaining_time = (total_iterations - iter) * avg_iter_time;
-      it_per_sec = 1 / avg_iter_time;
       waitbar((iter-1)/total_iterations, f, ...
-        sprintf('Computing (%.2f it/s, %d/%d, ~ %.2f s)', ...
-        it_per_sec, iter, total_iterations, remaining_time));
+        sprintf('Computing (%.2f s/it, %d/%d, ~ %.2f s)', ...
+        avg_iter_time, iter, total_iterations, remaining_time));
     end
     
     if this.ids(j) ~= 0 % exclude region corresponding to whole brain
