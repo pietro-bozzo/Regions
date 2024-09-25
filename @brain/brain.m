@@ -16,6 +16,7 @@ classdef brain
     aval_indeces
     aval_profile
     aval_sizes
+    aval_timeDependendentSize
     ATM
   end
 
