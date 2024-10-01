@@ -20,7 +20,7 @@ end
 % plot figures
 for i = i_indeces
   fig = figure(Name=string(this.ids(i)),NumberTitle='off',Position=get(0,'Screensize'));
-  tiledlayout(3,1,TileSpacing='Compact'); raster_ax = nexttile(1,[2,1]); hold on; rate_ax = nexttile;
+  t = tiledlayout(3,1,TileSpacing='Compact'); raster_ax = nexttile(1,[2,1]); hold on; rate_ax = nexttile;
   hold on; axes(raster_ax); img = 0; lines = [];
   for j = j_indeces
     neurons = this.regions_array(j,i).neurons;
@@ -50,7 +50,7 @@ for i = i_indeces
   end
   set(raster_ax,TickDir='out',XLim=[start;stop],XTick=[],YLim=[0,numel(neurons)])
   set(rate_ax,TickDir='out',XLim=[start;stop])
-  title(append('Raster for ',this.basename,', ',regionID2Acr(this.ids(i))),FontSize=17);
+  title(t,append('Raster for ',this.basename,', ',regionID2Acr(this.ids(i))),FontSize=17);
   subtitle(append('n units: ',string(size(this.regions_array(1,i).neurons,1)),', Δt: ', ...
     string(this.regions_array(1,i).spike_dt)),FontSize=14);
   xlabel(rate_ax,'time',FontSize=14); ylabel(rate_ax,'rate',FontSize=14);

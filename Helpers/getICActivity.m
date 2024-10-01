@@ -4,7 +4,7 @@ function [otsuWeights,otsuEigenvalues,activity,t] = getICActivity(spikes,opt)
 arguments
   spikes (:,2) double
   opt.restrict (:,2) double {mustBeNonnegative} = []
-  opt.windowsize (1,1) double {mustBePositive} = 0.03
+  opt.windowsize (1,1) double {mustBePositive} = 0.05
   opt.skip (1,1) {mustBeLogical} = false
   opt.save (1,1) {mustBeLogical} = false
   opt.path (1,:) char = '' % path to save results to, NOT YET IMPLEMENTED

@@ -9,7 +9,7 @@ arguments
 end
 
 % if spikes haven't been loaded
-if isempty(this.regions_array) || isempty(this.regions_array(1).getNeurons)
+if isempty(this.regions_array) || isempty(this.regions_array(1).neurons)
   err.message = append('Spikes are not loaded.');
   err.identifier = 'computeAvalanches:MissingSpikes';
   error(err);

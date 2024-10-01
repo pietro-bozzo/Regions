@@ -55,7 +55,7 @@ for i = 1 : numel(start)
   A(:,:,i) = A(:,:,i) ./ repmat(Bj,numel(Bj),1);
 end
 this.ATMs{end+1,1} = mean(A,3,"omitnan");
-this.ATMs{end}(isnan(this.ATMs{end})) = 0;
+this.ATMs{end} = this.ATMs{end};
 
 % MAYBE FASTER METHOD, REQUIRES IMPLEMENTING ACCUMARRAY IN 3D
 %profile = sum(Z,2); % avalanches profile  % CHECK DIM

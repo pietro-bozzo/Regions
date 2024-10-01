@@ -10,7 +10,7 @@ arguments
     file (1,1) string = ""
 end
 
-% if isempty file allora:
+% if isempty file then:
 legend = dictionary(["0","00","1","01","2","02","11","12","21","22","31","32","41","42","51","52"], ...
     ["whole brain","whole brain","l undefined mPFC","l undefined mPFC","r undefined mPFC","r undefined mPFC", ...
     "l vmPFC","r vmPFC","l dmPFC","r dmPFC","l dHPC","r dHPC","l vHPC","r vHPC","l AMY","r AMY"]);

@@ -8,7 +8,7 @@ classdef region
     path
     id
     state
-    spikes
+    spikes    % matrix having sorted time stamps as first column and unit ids as second
     % avalanches
     spike_dt
     aval_threshold
