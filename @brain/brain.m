@@ -20,6 +20,7 @@ classdef brain
     % avalanche transition matrices
     ATM_stamps
     ATMs
+    aval_timeDependendentSize
   end
 
   methods

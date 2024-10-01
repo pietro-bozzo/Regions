@@ -13,7 +13,7 @@ function this = loadSpikes(this,opt)
     SetCurrentSession([char(fileparts(this.session_path)),'/',this.basename,'.xml'],'verbose','off');
     % load spikes
     spikes = GetSpikeTimes([GetGroups,repmat(-1,length(GetGroups),1)],'output','full');
-  end
+  end 
   % filter spikes for protocol phase
   if numel(this.phase_stamps) > 1 || this.phases ~= "all"
     restrict = [];

@@ -19,3 +19,4 @@ end
 % compute indeces of avalanche initiation and ending times
 this.aval_indeces = [find([profile(1)~=0;profile(2:end)~=0&profile(1:end-1)==0]), ...
   find([profile(2:end)==0&profile(1:end-1)~=0;profile(end)~=0])];
+this.aval_timeDependendentSize = clean;
