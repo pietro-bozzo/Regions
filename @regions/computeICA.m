@@ -24,11 +24,16 @@ time = cell(1, num_ids*num_states);
 
 regions_array = transpose(this.regions_array);
 regions_array = regions_array(:);
-parfor k = 1:num_states*num_ids % set up brain_array
+window = opt.window;
+
+parfor k = 1:num_states*num_ids
     region = regions_array(k);
     if region.id ~= 0
       spikes = region.spikes;
-      [IC_weights{k},~,IC_activity{k},time{k}] = getICActivity(spikes,windowsize=opt.window);
+      [w,~,ic,t] = getICActivity(spikes,windowsize=window);
+      IC_weights{k} = w;
+      IC_activity{k}=ic;
+      time{k} = t;
     end
     send(q, k);
 end
@@ -38,7 +43,7 @@ for i = 1:num_states
     IC_w = IC_weights((i-1)*num_ids + 1:i*num_ids);
     IC_a = IC_activity((i-1)*num_ids + 1:i*num_ids);
     IC = homogeneousICS(IC_a);
-    t = time{i*num_ids};
+    t = time{(i-1)*num_ids+1};
     this.brain_array(i,1) = brain(this.basename,this.session_path,IC_w,opt.window, t(1:size(IC_activity,1)), IC, state=this.states(i));
 end
 end
