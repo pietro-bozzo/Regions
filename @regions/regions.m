@@ -81,22 +81,12 @@ classdef regions
         obj.phase_stamps = {};
         found_phase = false(numel(opt.phases),1);
         if numel(opt.phases) ~= 1 || opt.phases ~= "all"
-          events = loadEvents(session); % MY LOADEVENTS SHOULD HANDLE SLEEP BIS ON ITS OWN
-          for i = 1 : 2 : numel(events.description)
+          [events,stamps] = loadEvents(session);
+          for i = 1 : numel(events)
             for j = 1 : numel(opt.phases)
               % SHOULD ERROR IF I FIND 2 TIMES SAME PHASE AND WARN IF ORDER OF PHASES IS UNEXPECTED
-              % bis IS BEIGN IGNORED NOW
-              if strcmp(events.description{i}(end-5:end),'sleep1') && ...
-                 opt.phases(j) == "task1"
-                obj.phase_stamps{end+1,1} = [events.time(i),events.time(i+1)];
-                found_phase(j) = true;
-              end
-              if strcmp(events.description{i}(end-strlength(opt.phases(j))+1:end),opt.phases(j))
-                if ~strcmp(events.description{i+1}(end-strlength(opt.phases(j))+1:end),opt.phases(j))
-                  error('regions:WrongEventsFormat',append('Unable to find two time stamps for ', ...
-                    opt.phases(j),'.'))
-                end
-                obj.phase_stamps{end+1,1} = [events.time(i),events.time(i+1)];
+              if events(i) == opt.phases(j)
+                obj.phase_stamps{end+1,1} = stamps{i};
                 found_phase(j) = true;
               end
             end
