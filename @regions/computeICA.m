@@ -26,7 +26,7 @@ regions_array = transpose(this.regions_array);
 regions_array = regions_array(:);
 window = opt.window;
 
-parfor k = 1:num_states*num_ids
+parfor k = 1 : num_states*num_ids
     region = regions_array(k);
     if region.id ~= 0
       spikes = region.spikes;
@@ -39,7 +39,7 @@ parfor k = 1:num_states*num_ids
 end
 close(f);
 
-for i = 1:num_states
+for i = 1 : num_states
     IC_w = IC_weights((i-1)*num_ids + 1:i*num_ids);
     IC_a = IC_activity((i-1)*num_ids + 1:i*num_ids);
     IC = homogeneousICS(IC_a);
@@ -72,5 +72,5 @@ function updateWaitBar(f, total_iterations, reset)
     else
         iter = iter + 1;
     end
-    waitbar(iter / total_iterations, f, sprintf('Computing (%d/%d)', iter, total_iterations));  % Update waitbar; change 1000 to N if necessary
+    waitbar(iter / total_iterations, f, sprintf('Computing (%d/%d)', iter, total_iterations)); % Update waitbar; change 1000 to N if necessary
 end

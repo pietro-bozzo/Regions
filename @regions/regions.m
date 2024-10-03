@@ -53,29 +53,24 @@ classdef regions
       if iscell(opt.phases)
         for phase = opt.phases.'
           if ~isnumeric(phase{1})
-            error('mustBeNumericOrString:wrongType',['Invalid value for ''phases'' argument. Value must be' ...
-              ' a cell array of numerics or string.'])
+            error('mustBeNumericOrString:wrongType','Invalid value for ''phases'' argument. Value must be a cell array of numerics or a string array.')
           else
             if ~ismatrix(phase{1}) || size(phase{1},2) ~= 2
-              error('mustHaveDims:wrongDim',['Invalid value for ''phases'' argument. Value must be a ' ...
-                'cell array of matrices with two columns.'])
+              error('mustHaveDims:wrongDim','Invalid value for ''phases'' argument. Value must be a cell array of matrices with two columns.')
             elseif any(any(phase{1}<0))
-              error('mustBeNonnegative:negative',['Invalid value for ''phases'' argument. Value must be ' ...
-                'non negative'])
+              error('mustBeNonnegative:negative','Invalid value for ''phases'' argument. Value must be non negative')
             end
           end
         end
         obj.phase_stamps = opt.phases; % keep user defined phase stamps
       else
         if isnumeric(opt.phases)
-          error('mustBeNumericOrString:wrongType',['Invalid value for ''phase'' argument. Value must be' ...
-            ' a cell array of numerics or string.'])
+          error('mustBeNumericOrString:wrongType','Invalid value for ''phase'' argument. Value must be a cell array of numerics or a string array.')
         end
         try
           opt.phases = string(opt.phases);
         catch
-          error('mustBeNumericOrString:wrongType',['Invalid value for ''phase'' argument. Value must be' ...
-            ' a cell array of numerics or string.'])
+          error('mustBeNumericOrString:wrongType','Invalid value for ''phase'' argument. Value must be a cell array of numerics or a string array.')
         end
         % load protocol-phases time stamps required by the user
         obj.phase_stamps = {};
