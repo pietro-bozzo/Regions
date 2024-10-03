@@ -1,4 +1,4 @@
-function [sizes,profile,indeces,durations] = getAvalanchesFromList(spikes,bin_size,opt)
+function [sizes,profile,indeces,durations, timeDependentSize] = getAvalanchesFromList(spikes,bin_size,opt)
 % getAvalanchesFromList Get avalanches sizes, activity profile and start/end indeces from spike list
 %
 % arguments:
@@ -29,6 +29,7 @@ else
   ind = [true;profile(2:end)~=0|profile(1:end-1)~=0]; % ind(i) = 0 if i is repeated zero
   % compute sizes
   clean = profile(ind); % remove repeated zeros
+  timeDependentSize = clean;
   sizes = accumarray(cumsum(clean==0)+(profile(1)~=0),clean);
   % compute durations
   clean = profile(ind) > 0; % remove repeated zeros and count each active bin as 1

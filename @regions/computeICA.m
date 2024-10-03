@@ -44,7 +44,7 @@ for i = 1:num_states
     IC_a = IC_activity((i-1)*num_ids + 1:i*num_ids);
     IC = homogeneousICS(IC_a);
     t = time{(i-1)*num_ids+1};
-    this.brain_array(i,1) = brain(this.basename,this.session_path,IC_w,opt.window, t(1:size(IC_activity,1)), IC, state=this.states(i));
+    this.brain_array(i,1) = brain(this.basename,this.session_path,IC_w,opt.window, t(1:size(IC,1)), IC, state=this.states(i));
 end
 end
 
