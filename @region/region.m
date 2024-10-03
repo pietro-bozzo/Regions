@@ -15,6 +15,7 @@ classdef region
     aval_indeces
     aval_profile
     aval_sizes
+    aval_timeDependendentSize
     % assemblies
     %time_window % default 0.03
     %asmb_threshold % default 2/3
@@ -180,7 +181,7 @@ classdef region
       end
       this.spike_dt = opt.spike_dt;
       this.aval_threshold = opt.threshold;
-      [this.aval_sizes,this.aval_profile,this.aval_indeces] = getAvalanchesFromList( ...
+      [this.aval_sizes,this.aval_profile,this.aval_indeces, ~, this.aval_timeDependendentSize] = getAvalanchesFromList( ...
         this.spikes,this.spike_dt,threshold=opt.threshold);
     end
 
