@@ -56,7 +56,7 @@ classdef regions
             error('mustBeNumericOrString:wrongType','Invalid value for ''phases'' argument. Value must be a cell array of numerics or a string array.')
           else
             if ~ismatrix(phase{1}) || size(phase{1},2) ~= 2
-              error('mustHaveDims:wrongDim','Invalid value for ''phases'' argument. Value must be a cell array of matrices with two columns.')
+              error('mustHaveDims:WrongDim','Invalid value for ''phases'' argument. Value must be a cell array of matrices with two columns.')
             elseif any(any(phase{1}<0))
               error('mustBeNonnegative:negative','Invalid value for ''phases'' argument. Value must be non negative')
             end

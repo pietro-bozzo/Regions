@@ -11,3 +11,4 @@ list = [];
 for i = 1 : numel(this.brain_array(state_index).IC_weights)
   list = [list;size(this.brain_array(state_index).IC_weights{i},2)];
 end
+list(list=0) = 1; % set to 1 as there is one column of NaNs when no ICs are detected
