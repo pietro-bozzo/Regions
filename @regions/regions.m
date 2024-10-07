@@ -28,9 +28,9 @@ classdef regions
       % arguments:
       % session (1,:) char
       % results_path (1,1) string = ""
-      % phases (1,1) string = "all"   either a cell of n x 2 matrices of time stamps or names of protocol
-      %                               phases
-      % states (:,1) string = "all"
+      % phases (1,1) string = "all"    either a cell of n x 2 matrices of time stamps or names of protocol phases
+      % states (:,1) string = "all"    states to load, default aggregates  all data in a single state named "all"
+      % regions (:,1) double {mustBeInteger,mustBeNonnegative} = []    regions to load, default loads all regions of data
       % load_spikes (1,1) {mustBeLogical} = false    if true, load spikes
 
       arguments
@@ -53,24 +53,24 @@ classdef regions
       if iscell(opt.phases)
         for phase = opt.phases.'
           if ~isnumeric(phase{1})
-            error('mustBeNumericOrString:wrongType','Invalid value for ''phases'' argument. Value must be a cell array of numerics or a string array.')
+            error('mustBeNumericOrString:WrongType','Invalid value for ''phases'' argument. Value must be a cell array of numerics or a string array.')
           else
             if ~ismatrix(phase{1}) || size(phase{1},2) ~= 2
               error('mustHaveDims:WrongDim','Invalid value for ''phases'' argument. Value must be a cell array of matrices with two columns.')
             elseif any(any(phase{1}<0))
-              error('mustBeNonnegative:negative','Invalid value for ''phases'' argument. Value must be non negative')
+              error('mustBeNonnegative:Negative','Invalid value for ''phases'' argument. Value must be non negative')
             end
           end
         end
         obj.phase_stamps = opt.phases; % keep user defined phase stamps
       else
         if isnumeric(opt.phases)
-          error('mustBeNumericOrString:wrongType','Invalid value for ''phase'' argument. Value must be a cell array of numerics or a string array.')
+          error('mustBeNumericOrString:WrongType','Invalid value for ''phase'' argument. Value must be a cell array of numerics or a string array.')
         end
         try
           opt.phases = string(opt.phases);
         catch
-          error('mustBeNumericOrString:wrongType','Invalid value for ''phase'' argument. Value must be a cell array of numerics or a string array.')
+          error('mustBeNumericOrString:WrongType','Invalid value for ''phase'' argument. Value must be a cell array of numerics or a string array.')
         end
         % load protocol-phases time stamps required by the user
         obj.phase_stamps = {};
@@ -107,8 +107,7 @@ classdef regions
           awake = i;
         elseif opt.states(i) ~= "all"
           % IMPLEMENT ALLOWED STATES LIST, TAHT FORCES ORDER OF STATES ALWAYS, NO MORE ORDER PROBLEM!
-          obj.state_stamps{i} = readmatrix(append(events_path,obj.basename,'.',opt.states(i)), ...
-            FileType='text');
+          obj.state_stamps{i} = readmatrix(append(events_path,obj.basename,'.',opt.states(i)),FileType='text');
         end
       end
       if awake ~= 0 % AWAKE IS A BAD NAME FOR THIS IMPLEMENTATION
@@ -119,7 +118,7 @@ classdef regions
         end
       end
       obj.states = opt.states;
-      ids = unique(opt.regions); % DONE TO LIMIT REGIONS TO LOAD, MAYBE REMOVE FOR SIMPLICITY
+      ids = unique(opt.regions);
       if length(ids) ~= length(opt.regions)
         warning('Requested regions contain duplicates.')
       end

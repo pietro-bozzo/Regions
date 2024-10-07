@@ -56,7 +56,7 @@ function this = loadSpikes(this,opt)
         for j = 1 : numel(this.states)
           if strcmp(this.states(j),"all") % if no specific brain state is requested
             this.regions_array(j,k) = region(this.basename,this.session_path,found_ids(k),region_neurons,region_spikes);
-          else % get spikes for specific brain state HERE Restrict IS USED MULTIPLE TIMES ON SAME DATA: SHOULD IMPLEMENT A f THAT DOES IT ONCE WITH MANY state_stamps AND MAYBE DO BEFORE FINDING REGION
+          else % get spikes for specific brain state
             this.regions_array(j,k) = region(this.basename,this.session_path,found_ids(k),region_neurons,Restrict(region_spikes,this.state_stamps{j},'shift','off'),state=this.states(j));
           end
         end
@@ -64,8 +64,8 @@ function this = loadSpikes(this,opt)
     end
   end
   i = size(this.regions_array,2); % needed in case found_ids == [0]
-  if found_ids(end) == 0 % add a region containing spikes of whole brain
-    for j = 1 : numel(this.states)
+  if found_ids(end) == 0
+    for j = 1 : numel(this.states) % get spikes for whole brain
       if strcmp(this.states(j),"all")
         this.regions_array(j,i+1) = region(this.basename,this.session_path,0,brain_neurons,labeled_spikes(valid_ids,[1,4]));
       else
