@@ -51,12 +51,16 @@ end
 function ICS = homogeneousICS(IC_activity)
     n = size(IC_activity, 2);
     lens = cellfun(@(x) size(x, 1), IC_activity);
-    lens = lens(lens > 0);
+    lens = lens(lens > 1);
+    if isempty(lens)
+      ICS = NaN(2,n);
+      return
+    end
     len = min(lens);
     ICS = [];
     for i = 1:n
         ic = IC_activity{i};
-        if isempty(ic)
+        if any(any(isnan(ic)))
             ics = NaN(len, 1);
         else
             ics = ic(1:len,:);

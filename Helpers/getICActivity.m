@@ -20,7 +20,7 @@ end
 %   return
 % end
 
-if isempty(spikes)
+if isempty(spikes) || numel(unique(spikes(:,2))) == 1
   [otsuWeights,otsuEigenvalues,activity,t] = deal(NaN);
   return
 end
