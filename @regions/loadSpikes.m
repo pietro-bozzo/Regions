@@ -2,17 +2,32 @@ function this = loadSpikes(this,opt)
   % loadSpikes Load Session .xml file and construct the regions_array using spikes
   arguments
     this (1,1) regions
+    opt.load (1,1) {mustBeLogical} = true    % load from .mat, bypassing FMAT
+    opt.test (1,1) {mustBeLogical} = false    % load synthetic test spikes
     opt.shuffle (1,1) {mustBeLogical} = false
-    opt.test (1,1) {mustBeLogical} = false
   end
   
-  if opt.test
+  loadFMAT = ~opt.load; % flag to load spikes using slower FMAT utility
+  if opt.load
+    if ~isfolder(append(this.session_path,'/Data'))
+      mkdir(append(this.session_path,'/Data'))
+      loadFMAT = true;
+    elseif ~isfile(append(this.session_path,'/Data/spikes.mat'))
+      loadFMAT = true;
+    else
+      load(append(this.session_path,'/Data/spikes.mat'),'spikes');
+    end
+  elseif opt.test
     spikes = readmatrix(append(fileparts(this.session_path),'/',this.basename,'.test'),FileType="text");
-  else
+  end
+  if loadFMAT && ~opt.test
     % load .xml file
     SetCurrentSession([char(fileparts(this.session_path)),'/',this.basename,'.xml'],'verbose','off');
     % load spikes
     spikes = GetSpikeTimes([GetGroups,repmat(-1,length(GetGroups),1)],'output','full');
+    if opt.load
+      save(append(this.session_path,'/Data/spikes.mat'),'spikes')
+    end
   end 
   % filter spikes for protocol phase
   if numel(this.phase_stamps) > 1 || this.phases ~= "all"
@@ -46,10 +61,10 @@ function this = loadSpikes(this,opt)
   brain_neurons = [];
   k = 0;
   % get spikes for each region
-  for i = 1 : numel(unique_ids) 
+  for i = 1 : numel(unique_ids)
     if k ~= numel(found_ids) % if some ids found in data are still to be checked
-      k = k + 1;
-      if unique_ids(i) == found_ids(k)
+      if unique_ids(i) == found_ids(k+1)
+        k = k + 1;
         region_spikes = labeled_spikes(reg_ids==unique_ids(i),[1,4]);
         region_neurons = unique(region_spikes(:,2));
         brain_neurons = [brain_neurons;region_neurons];

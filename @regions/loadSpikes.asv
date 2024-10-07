@@ -2,17 +2,35 @@ function this = loadSpikes(this,opt)
   % loadSpikes Load Session .xml file and construct the regions_array using spikes
   arguments
     this (1,1) regions
+    opt.load (1,1) {mustBeLogical} = true    % load from .mat
+    opt.test (1,1) {mustBeLogical} = false    % load test spikes
     opt.shuffle (1,1) {mustBeLogical} = false
-    opt.test (1,1) {mustBeLogical} = false
   end
   
-  if opt.test
+  loadFMAT = ~ opt.l
+  if opt.load
+    if ~isfolder(append(this.session_path,'/Data/spikes.mat'))
+      mkdir(append(this.session_path,'/Data/spikes.mat'))
+    else
+      spikes = load(append(this.session_path,'/Data/spikes.mat'));
+    end
+  elseif opt.test
     spikes = readmatrix(append(fileparts(this.session_path),'/',this.basename,'.test'),FileType="text");
-  else
+  end
+
+tic
+  if ~opt.load && ~opt.test
     % load .xml file
     SetCurrentSession([char(fileparts(this.session_path)),'/',this.basename,'.xml'],'verbose','off');
     % load spikes
     spikes = GetSpikeTimes([GetGroups,repmat(-1,length(GetGroups),1)],'output','full');
+
+toc
+
+tic
+    save(append(this.session_path,'/Data/spikes.mat'),'spikes')
+toc
+
   end 
   % filter spikes for protocol phase
   if numel(this.phase_stamps) > 1 || this.phases ~= "all"
@@ -46,17 +64,17 @@ function this = loadSpikes(this,opt)
   brain_neurons = [];
   k = 0;
   % get spikes for each region
-  for i = 1 : numel(unique_ids) 
+  for i = 1 : numel(unique_ids)
     if k ~= numel(found_ids) % if some ids found in data are still to be checked
-      k = k + 1;
-      if unique_ids(i) == found_ids(k)
+      if unique_ids(i) == found_ids(k+1)
+        k = k + 1;
         region_spikes = labeled_spikes(reg_ids==unique_ids(i),[1,4]);
         region_neurons = unique(region_spikes(:,2));
         brain_neurons = [brain_neurons;region_neurons];
         for j = 1 : numel(this.states)
           if strcmp(this.states(j),"all") % if no specific brain state is requested
             this.regions_array(j,k) = region(this.basename,this.session_path,found_ids(k),region_neurons,region_spikes);
-          else % get spikes for specific brain state
+          else % get spikes for specific brain state HERE Restrict IS USED MULTIPLE TIMES ON SAME DATA: SHOULD IMPLEMENT A f THAT DOES IT ONCE WITH MANY state_stamps AND MAYBE DO BEFORE FINDING REGION
             this.regions_array(j,k) = region(this.basename,this.session_path,found_ids(k),region_neurons,Restrict(region_spikes,this.state_stamps{j},'shift','off'),state=this.states(j));
           end
         end
@@ -64,8 +82,8 @@ function this = loadSpikes(this,opt)
     end
   end
   i = size(this.regions_array,2); % needed in case found_ids == [0]
-  if found_ids(end) == 0
-    for j = 1 : numel(this.states) % get spikes for whole brain
+  if found_ids(end) == 0 % add a region containing spikes of whole brain
+    for j = 1 : numel(this.states)
       if strcmp(this.states(j),"all")
         this.regions_array(j,i+1) = region(this.basename,this.session_path,0,brain_neurons,labeled_spikes(valid_ids,[1,4]));
       else

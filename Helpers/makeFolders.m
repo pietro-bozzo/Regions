@@ -1,5 +1,5 @@
 function makeFolders(session)
-% makeFolders Create Pietro folders in specified session, if not present
+% makeFolders Create Pietro folders in specified session, if missing
 %
 % arguments:
 % session (1,:) char              path to a Session .xml file
