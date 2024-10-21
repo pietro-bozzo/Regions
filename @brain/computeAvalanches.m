@@ -3,7 +3,7 @@ function this = computeAvalanches(this,opt)
 
 arguments
   this (1,1) brain
-  opt.threshold (1,1) double {mustBeNonnegative} = 0
+  opt.threshold (1,1) double {mustBeNonnegative} = 2
 end
 
 this = this.setAvalThreshold(opt.threshold);

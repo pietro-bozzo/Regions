@@ -15,7 +15,7 @@ arguments
 end
 
 if isempty(spikes)
-  [sizes,profile] = deal(NaN);
+  [sizes,profile, durations, timeDependentSize] = deal(NaN);
   indeces = [NaN,NaN];
 else
   edges = 0 : bin_size : spikes(end,1)+bin_size;

@@ -46,6 +46,19 @@ for i = 1 : num_states
     t = time{(i-1)*num_ids+1};
     this.brain_array(i,1) = brain(this.basename,this.session_path,IC_w,opt.window, t(1:size(IC,1)), IC, state=this.states(i));
 end
+
+for k = 1 : num_states*num_ids
+    region = regions_array(k);
+    id = region.id;
+    if id ~= 0
+        idRegion = find(this.ids == id);
+        idState = find(strcmp(this.states, region.state));
+        w = IC_weights{k};
+        ic = IC_activity{k};
+        t = time{k};
+        this.regions_array(idState, idRegion) = region.setICComponents(w, opt.window, t, ic);
+    end
+end
 end
 
 function ICS = homogeneousICS(IC_activity)
