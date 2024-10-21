@@ -1,13 +1,13 @@
 function intervals = getAvalIntervals(this,opt)
-% getAvalIntervals Get avalanche start-stop bin indeces SHOULD ERROR IF AVALS NOT COMPUTED
+% getAvalIntervals Get start and stop intervals of avalanches computed using region spiking data
 
 arguments
-  this (1,1) brain
+  this (1,1) region
   opt.restriction (:,1) double = []
-  opt.threshold (1,1) double = 0
+  opt.threshold (1,1) double {mustBeNonnegative} = 0
 end
 
-intervals = (this.aval_indeces-repmat([1,0],numel(this.aval_indeces(:,1)),1)) * this.IC_window;
+intervals = (this.aval_indeces-repmat([1,0],numel(this.aval_indeces(:,1)),1)) * this.spike_dt;
 if opt.threshold ~= 0
   intervals = intervals(this.aval_sizes>opt.threshold,:);
 end

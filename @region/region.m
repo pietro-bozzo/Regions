@@ -130,34 +130,6 @@ classdef region
       end
     end
 
-    function intervals = getAvalIntervals(this,opt)
-      arguments
-        this (1,1) region
-        opt.restriction (:,1) double = []
-        opt.threshold (1,1) double = 0
-      end
-      intervals = (this.aval_indeces-repmat([1,0],numel(this.aval_indeces(:,1)),1)) * this.spike_dt;
-      if opt.threshold ~= 0
-        intervals = intervals(this.aval_sizes>opt.threshold,:);
-      end
-      if ~isempty(opt.restriction)
-        intervals = intervals(intervals(:,1)>opt.restriction(1) & intervals(:,2)<opt.restriction(2),:);
-      end
-    end
-
-    function sizes = getAvalSizes(this,opt)
-      arguments
-        this (1,1) region
-        opt.full (1,1) {mustBeLogical} = false % if true, get also zeros for all times without aval
-      end
-      if ~any(isnan(this.aval_sizes)) && opt.full
-        sizes = zeros(this.aval_indeces(end),1);
-        sizes(this.aval_indeces(:,1)) = this.aval_sizes;
-      else
-        sizes = this.aval_sizes;
-      end
-    end
-
     function durations = getAvalDurations(this,opt) % CHANGE
       arguments
         this (1,1) region
@@ -172,18 +144,6 @@ classdef region
     end
 
     % methods to compute properties
-
-    function this = computeAvalanches(this,opt)
-      arguments
-        this (1,1) region
-        opt.spike_dt (1,1) double {mustBePositive} = 0.02
-        opt.threshold (1,1) double {mustBeNonnegative,mustBeLessThanOrEqual(opt.threshold,1)} = 0
-      end
-      this.spike_dt = opt.spike_dt;
-      this.aval_threshold = opt.threshold;
-      [this.aval_sizes,this.aval_profile,this.aval_indeces, ~, this.aval_timeDependendentSize] = getAvalanchesFromList( ...
-        this.spikes,this.spike_dt,threshold=opt.threshold);
-    end
 
     function maxes = binMaxAvalanches(this,bin_size)
       arguments

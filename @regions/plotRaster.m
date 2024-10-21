@@ -33,7 +33,7 @@ for i = i_indeces
       if opt.show_avals
         aval_intervals = this.regions_array(j,i).getAvalIntervals(restriction= ...
           [start;stop]); % REMOVE INTERVALS SMALLER THAN THRESHOLD?
-        PlotIntervals(aval_intervals,'color',[0.5,0.5,0.5],'alpha',0.15)
+        plotIntervals(aval_intervals,color=[0.5,0.5,0.5],alpha=0.15)
       end
     else
       img = img + histcounts2(spikes(:,2),spikes(:,1), ...

@@ -10,12 +10,10 @@ end
 
 for i = 1 : numel(this.brain_array)
   try
-    this.brain_array(i) = this.brain_array(i).computeATM(threshold=opt.threshold,restrict=opt.restrict, ...
-      shuffle=opt.shuffle);
+    this.brain_array(i) = this.brain_array(i).computeATM(threshold=opt.threshold,restrict=opt.restrict,shuffle=opt.shuffle);
   catch except
-    if strcmp(except.identifier,'computeATM:MissingThreshold')
-      error('computeATMs:MissingThreshold',['Avalanche threshold must be specified when avalanches ' ...
-        'haven''t been previously computed.']);
+    if strcmp(except.identifier,'setAvalThreshold:MissingThreshold')
+      error('computeATMs:MissingThreshold','Avalanche threshold must be specified when avalanches haven''t been previously computed.');
     else
       rethrow(except)
     end

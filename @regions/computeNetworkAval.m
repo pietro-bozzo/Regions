@@ -3,7 +3,7 @@ function this = computeNetworkAval(this,opt)
 
 arguments
   this (1,1) regions
-  opt.threshold (1,1) double {mustBeNonnegative} = 2
+  opt.threshold (1,1) double {mustBeNonnegative} = 0
   opt.save (1,1) {mustBeLogical} = false % SAVE avals, TO IMPLEMENT (MAYBE, IF SLOW)
 end
 

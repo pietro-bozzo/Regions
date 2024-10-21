@@ -12,6 +12,7 @@ classdef brain
     IC_window
     IC_time
     ICs_activity
+    ICs_binar_activity
     % avalanches
     aval_threshold
     aval_indeces

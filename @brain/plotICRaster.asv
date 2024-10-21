@@ -1,0 +1,32 @@
+function plotICRaster(this,start,time_bin,stop,opt)
+% plotICRaster Compute Avalanche Transition Matrix using IC activity from each region
+
+arguments
+  this (1,1) regions
+  start (1,1) double {mustBeNonnegative}
+  time_bin (1,1) double {mustBeNonnegative}
+  stop (1,1) double {mustBeNonnegative}
+  opt.states (:,1) string = []
+  opt.threshold (1,1) double {mustBeNonnegative} = 0
+  opt.restrict (:,2) double {mustBeNonnegative} = []
+  opt.shuffle (1,1) {mustBeLogical} = false
+end
+
+
+
+
+
+
+
+% find requested states and regions
+[j_indeces,i_indeces,opt.states] = this.getIndeces(opt.states,opt.regions);
+% plot figures
+for j = j_indeces
+  fig = figure(Name=append('raster',opt.states),NumberTitle='off',Position=get(0,'Screensize')); hold on
+  [ICs,times] = find(this.brain_array(j).ICs_binar_activity);
+  times_sec = times * this.brain_array(j).ICA_window;
+  indeces = times_sec > start & times_sec < stop;
+  scatter(times_sec(indeces),units(indeces),40,'square','filled')
+end
+% adjust plot
+set(gca,TickDir='out',XLim=[start;stop],YLim=[0,numel(neurons)])
