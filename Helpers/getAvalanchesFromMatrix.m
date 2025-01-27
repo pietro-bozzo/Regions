@@ -7,6 +7,7 @@ end
 profile = sum(n0,2);
 theta = prctile(profile, opt.percentile);
 profile = profile - theta;
+profile(profile < 0) = 0;
 ind = [true;profile(2:end)>0|profile(1:end-1)>0]; % ind(i) = 0 if i is repeated < zero
 % compute sizes
 clean = profile(ind); % remove repeated < zeros
@@ -18,6 +19,5 @@ end
 aval_indeces = [find([profile(1)~=0;profile(2:end)~=0&profile(1:end-1)==0]), ...
   find([profile(2:end)==0&profile(1:end-1)~=0;profile(end)~=0])];
 aval_timeDependendentSize = clean;
-aval_sizes = ceil(aval_sizes);
+aval_sizes = round(aval_sizes) + 1;
 end
-

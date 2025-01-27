@@ -11,6 +11,7 @@ arguments
     opt.var = 0.5
     opt.first = true
     opt.pcPercentile = 10
+    opt.verbose = true
 end
 
 % if spikes haven't been loaded
@@ -21,23 +22,33 @@ if isempty(this.regions_array) || isempty(this.regions_array(1).neurons)
 end
 
 n = numel(this.regions_array);
-f = waitbar(0, sprintf('Sending jobs (%d/%d)', 0, n));
-future(1:10) = parallel.FevalFuture;
-for i = 1 : numel(this.regions_array)
+if opt.verbose
+    f = waitbar(0, sprintf('Sending jobs (%d/%d)', 0, n));
+end
+future(1:n) = parallel.FevalFuture;
+for i = 1 : n
   future(i) = parfeval(@computeTask, 1, this.regions_array(i), opt.spike_dt,...
     opt.threshold, opt.dopc, opt.pc, opt.var, opt.first, opt.pcPercentile);
-  waitbar(i / n, f, sprintf('Sending jobs (%d/%d)', i, n));
+  if opt.verbose
+    waitbar(i / n, f, sprintf('Sending jobs (%d/%d)', i, n));
+  end
 end
-waitbar(0, f, 'Pending...');
+if opt.verbose
+    waitbar(0, f, 'Pending...');
+end
 for i = 1:numel(this.regions_array)
     [completedIdx,r] = fetchNext(future);
     this.regions_array(completedIdx) = r;
-    waitbar(i /n, f, sprintf('Computing (%d/%d)', i, n));
+    if opt.verbose
+        waitbar(i /n, f, sprintf('Computing (%d/%d)', i, n));
+    end
 end
 if opt.save
   this.saveAval();
 end
-close(f);
+if opt.verbose
+    close(f);
+end
 end
 
 function newr = computeTask(r, spike_dt, threshold, dopc, pc, var, first, pcPercentile)
