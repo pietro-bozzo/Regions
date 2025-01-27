@@ -1,5 +1,5 @@
 function this = computeAvalanches(this,opt)
-% computeAvalanches Compute avalanches from raw spiking data, divided by regions
+% computeAvalanches Compute avalanches per region from raw spiking data
 
 arguments
     this (1,1) regions
