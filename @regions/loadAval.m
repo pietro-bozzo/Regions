@@ -1,4 +1,4 @@
-function this = loadAval(this,opt) % NOT ROBUST TO SWITCHING STATE ORDER
+function this = loadAval(this,opt) % NOT ROBUST TO SWITCHING STATE ORDER; DEPRECATED?
 % loadAval Load previously computed spike avalanches
 
 arguments

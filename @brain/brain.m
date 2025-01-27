@@ -4,46 +4,44 @@ classdef brain
 
   properties % (Access = private)
     % data
-    basename
-    path
+    %basename
+    %path
     state
     % Indipendent Component Analysis
-    IC_weights % cell array of IC weights
     IC_window
+    IC_weights % cell array of IC weights
     IC_time
-    ICs_activity
+    ICs_activations
+    IC_bin_size
     ICs_binar_activity
     % avalanches
     aval_threshold
     aval_indeces
     aval_profile
     aval_sizes
-    % avalanche transition matrices
-    ATM_stamps
-    ATMs
     aval_timeDependendentSize
   end
 
   methods
-      function obj = brain(basename,path,IC_weights,IC_window,IC_time,ICs_activity,opt)
+      function obj = brain(IC_weights,IC_window,IC_time,ICs_activations,opt)
       % region Construct an instance of this class
       %   Detailed explanation goes here
       arguments
-        basename (1,1) string = ""
-        path (1,1) string = ""
+        %basename (1,1) string = ""
+        %path (1,1) string = ""
         IC_weights (:,1) cell = []
         IC_window (1,1) double = []
         IC_time (:,1) double = []
-        ICs_activity (:,:) double = []
+        ICs_activations (:,2) double = []
         opt.state (1,1) string = "all"
       end
-      obj.basename = basename;
-      obj.path = path;
+      %obj.basename = basename;
+      %obj.path = path;
       obj.state = opt.state;
       obj.IC_weights = IC_weights;
       obj.IC_window = IC_window;
       obj.IC_time = IC_time;
-      obj.ICs_activity = ICs_activity;
+      obj.ICs_activations = ICs_activations;
     end
 
     % setter methods

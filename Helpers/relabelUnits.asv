@@ -29,24 +29,16 @@ if ~skip_filter
   legend = legend(legend(:,1)==rat,2:end); % keep only rat of interest
   if isempty(legend)
     [~,name,ext] = fileparts(opt.file_name);
-    error(append('Rat ',string(rat),' not found in ',name,ext,'.'))
+    error(append('Rat ',string(rat),' not found in ',name,ext))
   end
 end
 
-% adjust legend replacing channels with brain area and brain side
+% a
 [file_path,basename,extension] = fileparts(opt.file_name);
 if extension == ".cluloc"
-  % look for .chanat file in session folder
+  % look for .cluloc file in session folder
   split = strsplit(file_path,basename);
-  try
-    unit_channel_legend = readmatrix([split{1},basename,'/',basename,'.chanat'],FileType='text');
-  catch except
-    if strcmp(except.identifier,'MATLAB:textio:textio:FileNotFound')
-      error('relabelUnits:missingLegend','Unable to load .chanat file.')
-    else
-      throw(except)
-    end
-  end
+  unit_channel_legend = readmatrix([split{1},basename,'/',basename,'.chanat'],FileType='text');
   unit_channel_legend(:,2)= unit_channel_legend(:,2) + 1;
   % replace channel with [brain area, brain side]
   for i = 1 : size(unit_channel_legend,1)

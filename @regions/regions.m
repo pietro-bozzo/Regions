@@ -1,25 +1,30 @@
 classdef regions
-  % regions Class to EXPLAIN, requires FMAToolbox, ISAC, region, brain
-  %
-  % properties:
-  %
-  % methods:
-  %
+% regions Class to EXPLAIN, requires FMAToolbox, ISAC, region, brain
+%
+% properties:
+%
+% methods:
+%
   
-  properties (GetAccess = public, SetAccess = protected)
-    % data
-    basename   % session basename, e.g., Rat386-20180918
-    session_path    % path to Pietro folder in this session
-    results_path    % path to results folder
-    rat
-    phases
-    phase_stamps
-    states
-    state_stamps
-    ids
-    regions_array
-    brain_array
-  end
+properties (GetAccess = public, SetAccess = protected)
+  % data
+  basename        % session basename, e.g., Rat386-20180918
+  session_path    % path to Pietro folder in this session
+  results_path    % path to results folder
+  rat
+  phases
+  phase_stamps
+  states
+  state_stamps
+  ids
+  regions_array
+  brain_array
+  % assemblies parameters
+  asmb_method
+  asmb_state
+  asmb_event
+  asmb_window
+end
   
   methods
     function obj = regions(session,opt)
@@ -42,14 +47,17 @@ classdef regions
         opt.load_spikes (1,1) {mustBeLogical} = false
       end
 
-      [session_path,obj.basename] = fileparts(session);
+      % assign members
+      [session_path,basename] = fileparts(session);
+      obj.basename = basename;
       obj.session_path = append(session_path,'/Pietro');
       if opt.results_path == ""
         opt.results_path = append(obj.session_path,'/AvalanchesByState');
       end
       obj.results_path = opt.results_path;
       obj.rat = str2double(obj.basename(4:6));
-      % validate format of option phase
+
+      % validate format of option phase REMOVE, SHOULD JUST BE NAMES OF EVENTS
       if iscell(opt.phases)
         for phase = opt.phases.'
           if ~isnumeric(phase{1})
@@ -94,40 +102,48 @@ classdef regions
         end
         obj.phases = opt.phases;
       end
-      % load behavioral-states time stamps
+
+      % load behavioral-states time stamps IMPORVE: LOAD ALL EVENTS FOUND IN DATA USER NEEDS NOT SPECIFYING THEM AT CREATION AND ORDER IS FIXED
+      opt.states = opt.states(opt.states~="all"); % remove occurrencies of "all"
       obj.state_stamps = cell(size(opt.states));
-      events_path = append(session_path,'/events/');
-      if isfolder(append(events_path,'2021'))
-        events_path = append(events_path,'2021/');
-      end
-      awake = 0;
-      for i = 1 : numel(opt.states)
-        if opt.states(i) == "awake"
-          obj.state_stamps{i} = [0,intmax];
-          awake = i;
-        elseif opt.states(i) ~= "all"
-          % IMPLEMENT ALLOWED STATES LIST, TAHT FORCES ORDER OF STATES ALWAYS, NO MORE ORDER PROBLEM!
-          obj.state_stamps{i} = readmatrix(append(events_path,obj.basename,'.',opt.states(i)),FileType='text');
+      events_path = append(session_path,'/');
+      if isfolder(append(events_path,'events'))
+        events_path = append(events_path,'events/');
+        if isfolder(append(events_path,'2021'))
+          events_path = append(events_path,'2021/');
         end
       end
-      if awake ~= 0 % AWAKE IS A BAD NAME FOR THIS IMPLEMENTATION
+      other = 0;
+      for i = 1 : numel(opt.states)
+        if opt.states(i) == "other"
+          obj.state_stamps{i} = [0,intmax];
+          other = i;
+        else
+          % IMPLEMENT ALLOWED STATES LIST, TAHT FORCES ORDER OF STATES ALWAYS, NO MORE ORDER PROBLEM!
+          obj.state_stamps{i} = readmatrix(append(events_path,basename,'.',opt.states(i)),FileType='text');
+        end
+      end
+      if other ~= 0
         for i = 1 : numel(opt.states)
-          if i ~= awake && opt.states(i) ~= "all"
-            obj.state_stamps{awake} = SubtractIntervals(obj.state_stamps{awake},obj.state_stamps{i});
+          if i ~= other
+            obj.state_stamps{other} = SubtractIntervals(obj.state_stamps{other},obj.state_stamps{i});
           end
         end
       end
-      obj.states = opt.states;
+      obj.states = [opt.states;"all"];  % add "all" as last state
+
+      % validate and assign region ids
       ids = unique(opt.regions);
       if length(ids) ~= length(opt.regions)
         warning('Requested regions contain duplicates.')
       end
-      if ~isempty(ids) && ids(1) == 0
-        ids = [ids(2:end);0];
-      end
       obj.ids = ids;
+
+      % create arrays to store data
       obj.regions_array = region.empty;
       obj.brain_array = brain.empty;
+
+      % optionally, load spikes
       if opt.load_spikes
         obj = obj.loadSpikes();
       end

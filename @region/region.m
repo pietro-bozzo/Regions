@@ -4,10 +4,9 @@ classdef region
 
   properties (GetAccess = public, SetAccess = protected)
     % data
-    basename
-    path
     id
-    state
+    n_neurons
+    neurons
     spikes    % matrix having sorted time stamps as first column and unit ids as second
     % avalanches
     spike_dt
@@ -17,37 +16,22 @@ classdef region
     aval_sizes
     aval_timeDependendentSize
     % assemblies
-    %time_window % default 0.03
-    %asmb_threshold % default 2/3
-    %assemblies
-    %asmb_sizes
-    %asmb_raster
-  end
-
-  properties (Access = public)
-      neurons
-  end
-
-  properties (Dependent)
-      n_neurons
+    assemblies
+    asmb_weights
+    asmb_activations
   end
 
   methods
-    function obj = region(basename,path,id,neurons,spikes,opt)
+    function obj = region(id,neurons,spikes)
       % region Construct an instance of this class
       %   Detailed explanation goes here
       arguments
-        basename (1,1) string = ""
-        path (1,1) string = ""
         id (1,1) double {mustBeInteger} = -1
         neurons (:,1) double = []
         spikes (:,2) double = []
-        opt.state (1,1) string = "all"
       end
-      obj.basename = basename;
-      obj.path = path;
       obj.id = id;
-      obj.state = opt.state;
+      obj.n_neurons = numel(neurons);
       obj.neurons = neurons;
       obj.spikes = spikes;
     end
@@ -79,16 +63,6 @@ classdef region
         this.aval_indeces = indeces;
         this.aval_sizes = sizes;
       end
-    end
-
-    function this = setAssemblies(this,assemblies,time_window)
-      % setAssemblies Set assemblies, asmb_sizes and time window
-      this.assemblies = assemblies;
-      this.time_window = time_window;
-      this.asmb_sizes = sum(assemblies,2);
-      spike_raster = getSpikeRaster(this.spikes,bin_size=time_window); % RAGIONA MEGLIO SU QUESTO
-      this.asmb_raster = sparse(this.assemblies) * spike_raster;
-      this.asmb_raster = (this.asmb_raster./sum(this.assemblies,2)) >= this.asmb_threshold;
     end
 
     % getter methods
@@ -161,67 +135,5 @@ classdef region
       end
     end
         
-    function this = computeAssemblies(this,opt)
-      arguments
-        this (1,1) region
-        opt.time_window (1,1) double {mustBeNonnegative} = 0
-        opt.load (1,1) {mustBeLogical} = false
-        opt.save (1,1) {mustBeLogical} = false
-      end
-      if opt.time_window ~= 0
-        this.time_window = opt.time_window;
-      end
-      % set up file to load and save assemblies
-      asmb_file = append(this.basename,'.asb.',num2str(this.id,'%02d'));
-      if ~strcmp(this.state,"all")
-        asmb_file = append(asmb_file,'.',this.state);
-      end
-      asmb_path = append(this.path,'/Assemblies/',asmb_file);
-      % compute assemblies
-      if opt.load
-        try % try loading assemblies
-          this.assemblies = readmatrix(asmb_path,FileType='text');
-          this.asmb_sizes = sum(this.assemblies,2);
-        catch except
-          if strcmp(except.identifier,'MATLAB:textio:textio:FileNotFound')
-            opt.load = false; % flag for failed loading, to enable saving if required
-            if opt.save
-              fprintf(1,append('Unable to load ',asmb_file,', it will be computed and saved.\n'));
-            else
-              save = input(append('Unable to load ',asmb_file,', it will be computed. Save it? [y,n]: '),'s');
-              switch save
-                case 'y', opt.save = true;
-                case 'n'
-                otherwise, fprintf(1,'Unrecognized input, assemblies won''t be saved.\n');
-              end
-            end
-            [this.assemblies,this.asmb_sizes] = callISAC(this.spikes,time_window=this.time_window);
-          else
-            throw(except);
-          end
-        end
-      else
-        [this.assemblies,this.asmb_sizes] = callISAC(this.spikes,time_window=this.time_window);
-      end
-      if isempty(this.assemblies) % no assemblies detected, adjust n of columns to match n of neurons
-        this.assemblies = zeros(0,length(unique(this.spikes(:,2))));
-      end
-      if ~opt.load && opt.save
-        writematrix(this.assemblies,asmb_path,FileType='text');
-      end
-    end
-
-    function this = computeAsmbRaster(this,opt)
-      arguments
-        this (1,1) region
-        opt.threshold (1,1) double {mustBeNonnegative} = 0
-      end
-      if opt.threshold ~= 0
-        this.asmb_threshold = opt.threshold;
-      end
-      spike_raster = getSpikeRaster(this.spikes,bin_size=this.time_window); % RAGIONA MEGLIO SU QUESTO
-      this.asmb_raster = sparse(this.assemblies) * spike_raster;
-      this.asmb_raster = (this.asmb_raster./sum(this.assemblies,2)) >= this.asmb_threshold;
-    end
   end
 end

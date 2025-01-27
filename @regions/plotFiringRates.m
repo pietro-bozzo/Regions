@@ -1,40 +1,57 @@
-function plotFiringRates(this,start,time_bin,stop,opt)
-% plotFiringRates Plot firing rate of each region TO BE REPLACED BY PLOT ICActivity
+function fig = plotFiringRates(this,start,stop,opt)
+% plotFiringRates Plot firing rate of each region
 
 arguments
   this (1,1) regions
   start (1,1) double {mustBeNonnegative} = 0
-  time_bin (1,1) double {mustBeNonnegative} = 0
   stop (1,1) double {mustBeNonnegative} = 0
   opt.states (:,1) string = []
   opt.regions (:,1) double = []
-  opt.show_avals (1,1) {mustBeLogical} = false
-  opt.threshold (1,1) double {mustBeNonnegative} = 0
+  opt.smooth (1,1) double {mustBeNonnegative} = 2
   opt.save (1,1) {mustBeLogical} = false
-  opt.show (1,1) {mustBeLogical} = false
+  opt.show (1,1) {mustBeLogical} = true
 end
 
 % find requested states and regions
-[j_indeces,i_indeces,opt.states,opt.regions] = this.getIndeces(opt.states,opt.regions,brain=false);
-% plot figure
-fig = figure(Name='firing_rates',NumberTitle='off',Position=get(0,'Screensize')); hold on
-title(append('Firing rates for ',this.basename,', phase: ',this.phase,', states: [',strjoin( ...
-  opt.states,','),'], Δt: ',string(this.brain_array(1).getRateDt)),FontSize=17,FontWeight='Normal');
-tiledlayout(numel(i_indeces),1,TileSpacing='Compact');
-axs = [];
-for i = i_indeces
-  axs(i) = nexttile; hold on;
-  set(axs(i),TickDir='out')
-end
-for j = j_indeces
-  rates = this.brain_array(j).getFiringRates;
-  for i = i_indeces
-    plot(axs(i),rates(:,i)); % ADD TIME 
+[s_indeces,r_indeces,opt.states] = this.indeces(opt.states,opt.regions);
+
+% make figure
+fig = figure(Name='firing_rate',NumberTitle='off',Position=get(0,'Screensize')); hold on
+title(append('Firing rates for ',this.printBasename()),FontSize=17,FontWeight='Normal');
+
+% loop over states and regions
+max_stop = stop;
+for s = 1 : numel(s_indeces)
+  [state_firing,time] = this.firingRate(this.states(s_indeces(s)),this.ids(r_indeces),smooth=opt.smooth,nan_pad=true);
+  if stop <= 0
+    stop = -time(end) - 0.001;
+    max_stop = max([max_stop,abs(stop)]);
   end
+  % keep traces in requested time
+  ind = time > start & time < abs(stop);
+  state_firing = state_firing(ind,:);
+  time = time(ind,:);
+  % adjust traces
+  time = repmat([time;NaN],size(state_firing,2),1);
+  state_firing = state_firing + 500 * (0 : numel(r_indeces)-1); % adjust heights
+  state_firing = [state_firing;NaN(1,size(state_firing,2))]; % break plotting between lines
+  state_firing = state_firing(:); % flatten for plot
+  % plot
+  plot(time,state_firing,Color=myColors(s),DisplayName=this.states(s_indeces(s)));
+end
+% make labels
+ticks = 250 * (0 : 2*numel(r_indeces));
+labels = [repmat("",size(r_indeces.')),regionID2Acr(this.ids(r_indeces))].';
+labels = [labels(:);""];
+% adjust plot
+adjustAxes(gca,'XLim',[start;max_stop],'YLim',[0.5,ticks(end)],'YTick',ticks,'YTickLabel',labels)
+xlabel('time (s)');
+ylabel('population firing rate (Hz)');
+legend()
+
+if opt.save
+  %saveas(fig,append(this.results_path,'/raster.',string(this.ids(i)),'.svg'),'svg')
 end
 if ~opt.show
-  if ~opt.save
-    warning('Both options ''save'' and ''show'' were not selected.')
-  end
   close(fig)
 end

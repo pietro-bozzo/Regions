@@ -1,5 +1,5 @@
-function this = computeATM(this,delay,opt)
-% computeATM Compute Avalanche Transition Matrix using IC activity from each region
+function ATM = getATM(this,delay,opt)
+% getATM Compute Avalanche Transition Matrix using IC activity from each region
 
 arguments
   this (1,1) brain
@@ -11,10 +11,10 @@ arguments
 end
 
 if isempty(this.ICs_binar_activity)
-  error('cleanICA:MissingBinActivity','Binarized activity wasn''t computed.');
+  error('getATM:MissingBinActivity','Binarized activity wasn''t computed.');
 end
 
-this.ATM_stamps{end+1,1} = opt.restrict; % store intervals over which ATM is computed
+%this.ATM_stamps{end+1,1} = opt.restrict; % store intervals over which ATM is computed DEPRECATED
 % convert to full matrix to use accumarray CONVERSION IS TIME CONSUMING, ARE sparse MATRICES REALLY NEEDED?
 if issparse(this.ICs_binar_activity)
   Z = full(this.ICs_binar_activity).';
@@ -74,12 +74,12 @@ else
   % ignore zeros in avalanche ATMs
   %A(A==0) = NaN;
   % mean ATM
-  this.ATMs(end+1,:,:) = mean(A,3,"omitnan");
+  ATM = mean(A,3,"omitnan");
   % discard elements of ATM for which there less than 4 data points
   count = sum(~isnan(A),3); % number of NaNs for each ATM element
   ind_nan = count < 4;
-  this.ATMs(end,ind_nan) = NaN;
+  ATM(ind_nan) = NaN;
 end
 
 % set NaNs as zeros
-this.ATMs(end,isnan(this.ATMs(end,:,:))) = 0;
+ATM(isnan(ATM)) = 0;

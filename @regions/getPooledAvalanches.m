@@ -8,8 +8,10 @@ arguments
   opt.threshold (1,1) double {mustBeNonnegative} = 0
 end
 
-% find requested states and regions
+% find requested states and regions MUST BE UPDATED
 [i_indeces,j_indeces] = this.getIndeces(opt.states,opt.regions,strict=false);
+
+% pool avalanches MUST BE UPDATED
 sizes = [];
 durations = [];
 for i = i_indeces

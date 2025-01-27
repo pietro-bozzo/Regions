@@ -7,7 +7,7 @@ arguments
   opt.threshold (1,1) double = 0
 end
 
-intervals = (this.aval_indeces-repmat([1,0],numel(this.aval_indeces(:,1)),1)) * this.IC_window;
+intervals = (this.aval_indeces-repmat([1,0],size(this.aval_indeces,1),1)) * this.IC_bin_size;
 if opt.threshold ~= 0
   intervals = intervals(this.aval_sizes>opt.threshold,:);
 end
