@@ -24,24 +24,25 @@ for r = r_indeces
   freq = myFrequency(spike_times,'limits',[0,spike_times(end)],'smooth',opt.smooth);
   FR = inhomogeneousHorzcat(FR,freq(:,2));
   % EXTRA CODE TO CHECK CONSISTENCY OF Frequency time, TO REMOVE
-  %if exist('time','var') && all(time~=freq(:,1)) % TEMP check TO SEE IF ALGO IS CONSISTENT
-  %  warning('Inconsistent time')
-  %end
+  if exist('time','var') % TEMP check TO SEE IF ALGO IS CONSISTENT
+    min_len = min(size(time,1),size(freq,1));
+    if all(time(1:min_len) ~= freq(1:min_len,1))
+      warning('Inconsistent time')
+    end
+  end
   time = freq(1:size(FR,1),1);
 end
 
 % filter by state
 if state ~= "all"
   ind = false(size(time)); % ind(i) = 1 iff time(i) is in state
-  nan_ind = []; %false(numel(time)-1,1);
+  nan_ind = [];
   for interval = this.state_stamps{s_index}.'
     new_ind = time > interval(1) & time < interval(2);
-    ind = ind | new_ind;
-    disp(find(ind,1,'last'))
-    if isempty(find(ind,1,'last'))
-      disp('aaa')
-    end
-    nan_ind(end+1) = find(ind,1,'last') + 1; % nan_ind(j) is i : at time(i) state ends
+    if any(new_ind)
+      ind = ind | new_ind;
+      nan_ind(end+1) = find(new_ind,1,'last') + 1; % nan_ind(j) is i : at time(i) state ends
+    end   
   end
   if opt.nan_pad % add NaNs at the end of each valid time interval to allow plotting
     ind(nan_ind) = true;
