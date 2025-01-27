@@ -2,7 +2,7 @@ function [raster,bin_size] = getSpikeRaster(spikes,opt)
 % getSpikeRaster Get raster matrix of size n_units x n_bins
 %
 % arguments:
-% spikes (:,2) double                      matrix having sorted time stamps as first column and unit ids as second
+% spikes (:,2) double                      matrix havin = ng sorted time stamps as first column and unit ids as second
 % bin_size (1,1) double = 0                size of time bins in the raster, default is min inter-spike interval
 % end_time (1,1) double = spikes(end,1)    sup of raster time interval such that it is [0,end_time]
 

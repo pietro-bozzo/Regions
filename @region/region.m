@@ -119,6 +119,55 @@ classdef region
 
     % methods to compute properties
 
+    function this = computeAvalanches(this,opt)
+      arguments
+        this (1,1) region
+        opt.spike_dt (1,1) double {mustBePositive} = 0.01
+        opt.threshold (1,1) double {mustBeNonnegative,mustBeLessThanOrEqual(opt.threshold,1)} = 0
+        opt.dopc = false
+        opt.pc = NaN
+        opt.var = 0.5
+        opt.first = true
+        opt.pcPercentile = 10
+      end
+      if opt.dopc
+          n0 = getSpikesMatrix(this.spikes,windowsize=opt.spike_dt);
+          [Z, pc, explained] = reconstructPCSpikesMatrix(n0, pc=opt.pc, var=opt.var, first=opt.first);
+          [this.aval_sizes,this.aval_profile,this.aval_indeces, this.aval_timeDependendentSize] = getAvalanchesFromMatrix(Z, percentile=opt.pcPercentile);
+          this.npc = pc;
+          this.explainedVariance = explained;
+      else
+      this.spike_dt = opt.spike_dt;
+      this.aval_threshold = opt.threshold;
+      [this.aval_sizes,this.aval_profile,this.aval_indeces, ~, this.aval_timeDependendentSize] = getAvalanchesFromList( ...
+        this.spikes,this.spike_dt,threshold=opt.threshold);
+      end
+    end
+
+    function this = computeICAvalanches(this, opt)
+    arguments
+      this (1,1) region
+      opt.threshold (1,1) double {mustBeNonnegative} = 2
+    end
+        if ~isempty(this.ICs_activity)
+            profile = sum(abs(zscore(this.ICs_activity))>opt.threshold,2);
+            this.ICaval_profile = profile;
+            ind = [true;profile(2:end)~=0|profile(1:end-1)~=0]; % ind(i) = 0 if i is repeated zero
+            % compute sizes
+            clean = profile(ind); % remove repeated zeros
+            this.ICaval_sizes = accumarray(cumsum(clean==0)+(profile(1)~=0),clean);
+            if this.ICaval_sizes(end) == 0 % remove last zero
+              this.ICaval_sizes = this.ICaval_sizes(1:end-1);
+            end
+            % compute indeces of avalanche initiation and ending times
+            this.ICaval_indeces = [find([profile(1)~=0;profile(2:end)~=0&profile(1:end-1)==0]), ...
+              find([profile(2:end)==0&profile(1:end-1)~=0;profile(end)~=0])];
+            this.ICaval_timeDependendentSize = clean;
+        else
+            [this.ICaval_profile, this.ICaval_sizes, this.ICaval_indeces, this.ICaval_timeDependendentSize] = deal(NaN);
+        end
+    end
+
     function maxes = binMaxAvalanches(this,bin_size)
       arguments
         this (1,1) region
