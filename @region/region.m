@@ -19,6 +19,9 @@ classdef region
     assemblies
     asmb_weights
     asmb_activations
+
+    npc
+    explainedVariance
   end
 
   methods
