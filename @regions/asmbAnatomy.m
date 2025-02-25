@@ -3,12 +3,10 @@ function [list,regs] = asmbAnatomy(this,regs)
 
 arguments
   this (1,1) regions
-  regs (:,1) double = [] % IMPLEMENT POSSIBILITY TO GIVE ACR?
+  regs (:,1) double = []
 end
 
-if isempty(this.asmb_state)
-  error('asmbAnatomy:missingAssemblies','Assemblies have not been computed.')
-end
+assert(this.hasAssemblies(),'asmbAnatomy:MissingAssemblies','Assemblies have not been computed.')
 
 % find requested regions
 [~,r_indeces,~,regs] = this.indeces([],regs);

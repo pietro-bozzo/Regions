@@ -1,57 +1,32 @@
-function this = computeAvalanches(this,opt)
-% computeAvalanches Compute avalanches per region from raw spiking data
+function this = computeAvalanches(this,window,smooth,threshold)
+% computeAvalanches Compute avalanches per region from spiking data
+%
+% arguments:
+%     window       double = 0.01, time bin (s) for avalanche computation
+%     smooth       double = 2, gaussian kernel std in number of samples
+%     threshold    double = 30, percentile of region firing rate for avalanche computation
+
+% Copyright (C) 2025 by Pietro Bozzo
+%
+% This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License
+% as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
 
 arguments
-    this (1,1) regions
-    opt.spike_dt (1,1) double {mustBePositive} = 0.01
-    opt.threshold (1,1) double {mustBeNonnegative,mustBeLessThanOrEqual(opt.threshold,1)} = 0
-    opt.save (1,1) {mustBeLogical} = false
-    opt.dopc = false
-    opt.pc = NaN
-    opt.var = 0.5
-    opt.first = true
-    opt.pcPercentile = 10
-    opt.verbose = true
+  this (1,1) regions
+  window (1,1) double {mustBePositive} = 0.01 % i.e., 10 ms
+  smooth (1,1) double {mustBeNonnegative} = 2
+  threshold (1,1) double {mustBeNonnegative} = 30
 end
 
-% if spikes haven't been loaded
-if isempty(this.regions_array) || isempty(this.regions_array(1).neurons)
-  err.message = append('Spikes are not loaded.');
-  err.identifier = 'computeAvalanches:MissingSpikes';
-  error(err);
+for i = 1 : numel(this.ids)
+  % detect avalanches on population firing rate
+  [FR,time] = this.firingRate('all',this.ids(i),window=window,smooth=smooth);
+  [sizes,intervals] = avalanchesFromProfile(FR,time(2)-time(1),threshold);
+  % save results in region object
+  this.regions_array(i) = this.regions_array(i).setAvalanches(sizes,intervals);
 end
 
-n = numel(this.regions_array);
-if opt.verbose
-    f = waitbar(0, sprintf('Sending jobs (%d/%d)', 0, n));
-end
-future(1:n) = parallel.FevalFuture;
-for i = 1 : n
-  future(i) = parfeval(@computeTask, 1, this.regions_array(i), opt.spike_dt,...
-    opt.threshold, opt.dopc, opt.pc, opt.var, opt.first, opt.pcPercentile);
-  if opt.verbose
-    waitbar(i / n, f, sprintf('Sending jobs (%d/%d)', i, n));
-  end
-end
-if opt.verbose
-    waitbar(0, f, 'Pending...');
-end
-for i = 1:numel(this.regions_array)
-    [completedIdx,r] = fetchNext(future);
-    this.regions_array(completedIdx) = r;
-    if opt.verbose
-        waitbar(i /n, f, sprintf('Computing (%d/%d)', i, n));
-    end
-end
-if opt.save
-  this.saveAval();
-end
-if opt.verbose
-    close(f);
-end
-end
-
-function newr = computeTask(r, spike_dt, threshold, dopc, pc, var, first, pcPercentile)
-    newr = r.computeAvalanches(spike_dt=spike_dt,threshold= ...
-    threshold, dopc=dopc, pc=pc, var=var, first=first, pcPercentile=pcPercentile);
-end
+% store analysis parameters
+this.aval_window = window;
+this.aval_smooth = smooth;
+this.aval_threshold = threshold;

@@ -1,5 +1,17 @@
 function spikes = spikes(this,state,regs)
-% spikes Get spike list of requested regions in a state
+% spikes Get spike samples
+%
+% arguments:
+%     state     string = 'all', behavioral state
+%     regs      (n_regs,1) double = [], brain regions, default is all regions
+%
+% output:
+%     spikes    (n_spikes,2) double, spike samples, each row is [spike_time,unit_id]
+
+% Copyright (C) 2025 by Pietro Bozzo
+%
+% This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License
+% as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
 
 arguments
   this (1,1) regions
@@ -7,9 +19,7 @@ arguments
   regs (:,1) double = [] % IMPLEMENT POSSIBILITY TO GIVE ACR?
 end
 
-if ~this.hasSpikes()
-  error('asmbActivations:missingSpikes','Spikes have not been loaded.')
-end
+assert(this.hasSpikes(),'spikes:MissingSpikes','Spikes have not been loaded.')
 
 % find requested state and regions
 [s_index,r_indeces] = this.indeces(state,regs);

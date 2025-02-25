@@ -7,9 +7,7 @@ arguments
   opt.regs (:,1) double = []
 end
 
-if ~this.hasAssemblies()
-  error('saveAssemblies:missingAssemblies','Assemblies have not been computed.')
-end
+assert(this.hasAssemblies(),'saveAssemblies:missingAssemblies','Assemblies have not been computed.')
 
 % set default value
 if opt.folder == ""

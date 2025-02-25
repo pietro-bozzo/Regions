@@ -1,10 +1,26 @@
-function fig = plotSpikeRaster(this,start,stop,opt) % time_bin,
+function fig = plotSpikeRaster(this,start,stop,opt)
 % plotRaster Plot spike raster divided by regions
+%
+% arguments:
+%     start      double, xlim will be [start,stop]
+%     stop       double, default is max spike time
+%
+% name-value arguments:
+%     states     (n_states,1) string = [], behavioral state, default is 'all'
+%     regions    (n_regs,1) double = [], brain regions, default is all regions
+%     avals      logical = false, if true, plot avalanches
+%
+% output:
+%     fig        figure
+
+% Copyright (C) 2025 by Pietro Bozzo
+%
+% This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License
+% as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
 
 arguments
   this (1,1) regions
   start (1,1) double {mustBeNonnegative}
-  %time_bin (1,1) double {mustBeNonnegative} TO IMPLEMENT
   stop (1,1) double {mustBeNonnegative}
   opt.states (:,1) string = []
   opt.regions (:,1) double = []
@@ -17,19 +33,20 @@ arguments
 end
 
 % find requested states and regions
-[s_indeces,r_indeces,opt.states] = this.indeces(opt.states,opt.regions);
+[s_indeces,r_indeces,opt.states] = this.indeces(opt.states,opt.regions,rearrange=true);
 
 % make figure
 fig = figure(Name='raster',NumberTitle='off',Position=get(0,'Screensize')); hold on
 title(append('Raster for ',this.printBasename()),FontSize=17,FontWeight='Normal');
 
-% loop over states and regions
+% get spikes to plot
 ticks = 0.5;
 labels = "";
 done_ticks = false;
 max_stop = stop;
+state_spikes = cell(numel(s_indeces),1);
 for s = 1 : numel(s_indeces)
-  state_spikes = [];
+  s_spikes = [];
   n_units_cum = 0;
   for r = r_indeces
     spikes = this.spikes(this.states(s_indeces(s)),this.ids(r));
@@ -45,8 +62,7 @@ for s = 1 : numel(s_indeces)
     spikes = compactSpikes(spikes,neurons);
     spikes(:,2) = spikes(:,2) + n_units_cum;
     n_units_cum = n_units_cum + numel(neurons);
-    state_spikes = [state_spikes;spikes];
-    % plot avalanches TO IMPLEMENT
+    s_spikes = [s_spikes;spikes];
     % make y labels
     if ~done_ticks
       ticks = [ticks;(ticks(end)+n_units_cum+0.5)/2;n_units_cum+0.5];
@@ -54,8 +70,30 @@ for s = 1 : numel(s_indeces)
     end
   end
   done_ticks = true;
-  % plot spikes
-  raster(state_spikes,'color',myColors(s),'DisplayName',this.states(s_indeces(s)))
+  state_spikes{s} = s_spikes;
+end
+
+% plot avalanches
+if opt.avals
+  % if 'all' is among states, just plot its avalanches
+  s_aval = find(opt.states=='all');
+  if isempty(s_aval)
+    s_aval = s_indeces;
+  end
+  for s = s_aval
+    height_cum = 0.5;
+    for r = r_indeces
+      height = numel(this.regions_array(r).neurons);
+      aval_intervals = this.avalIntervals(this.states(s_indeces(s)),this.ids(r),restriction=[start,max_stop]); % ,threshold=opt.aval_thresh
+      PlotIntervals(aval_intervals,'color',[0.5,0.5,0.5],'alpha',0.15,'ylim',[height_cum,height_cum+height],'legend','off','bottom',false)
+      height_cum = height_cum + numel(this.regions_array(r).neurons);
+    end
+  end
+end
+
+% plot spikes
+for s = 1 : numel(s_indeces)
+  raster(state_spikes{s},'color',myColors(s,'IBMcb'),'DisplayName',this.states(s_indeces(s)))
 end
 
 % adjust plot

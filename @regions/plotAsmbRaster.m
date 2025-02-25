@@ -21,7 +21,6 @@ fig = figure(Name='raster',NumberTitle='off',Position=get(0,'Screensize')); hold
 title(append('Raster for ',this.printBasename(),', ',this.asmb_method,', w: ',num2str(this.asmb_window),', event: ',this.asmb_event,', state: ',this.asmb_state),FontSize=17,FontWeight='Normal');
 
 % loop over states and regions
-%anatomy = this.asmbAnatomy(opt.regions);
 ticks = 0.5;
 labels = "";
 done_ticks = false;

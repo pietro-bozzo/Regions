@@ -9,11 +9,12 @@ classdef region
     neurons
     spikes    % matrix having sorted time stamps as first column and unit ids as second
     % avalanches
-    spike_dt
-    aval_threshold
-    aval_indeces
-    aval_profile
+    spike_dt % TO REMOVE
+    aval_threshold % TO REMOVE
+    aval_indeces % TO REMOVE
+    aval_profile % TO REMOVE
     aval_sizes
+    aval_intervals
     aval_timeDependendentSize
     % assemblies
     assemblies
@@ -26,8 +27,8 @@ classdef region
       % region Construct an instance of this class
       %   Detailed explanation goes here
       arguments
-        id (1,1) double {mustBeInteger} = -1
-        neurons (:,1) double = []
+        id (1,1) double {mustBeInteger} = -1 % uninitialized value
+        neurons (:,1) double {mustBeInteger,mustBePositive} = []
         spikes (:,2) double = []
       end
       obj.id = id;
@@ -36,42 +37,7 @@ classdef region
       obj.spikes = spikes;
     end
 
-    % setter methods
-
-    function this = set.neurons(this, val)
-        arguments
-            this
-            val (:,1) double
-        end
-        this.neurons = val;
-    end
-
-    function this = setAvalanches(this,dt,threshold,indeces,sizes)
-      arguments
-        this (1,1) region
-        dt (1,1) double {mustBePositive}
-        threshold (1,1) double {mustBeNonnegative,mustBeLessThanOrEqual(threshold,1)}
-        indeces (:,2) double
-        sizes (:,1) double
-      end
-      this.spike_dt = dt;
-      if any(isnan(indeces))
-        [this.aval_threshold,this.aval_sizes] = deal(NaN);
-        this.aval_indeces = [NaN,NaN];
-      else
-        this.aval_threshold = threshold;
-        this.aval_indeces = indeces;
-        this.aval_sizes = sizes;
-      end
-    end
-
-    % getter methods
-
-    function n = get.n_neurons(this)
-        n = numel(this.neurons);
-    end
-
-    function [rate,times] = getFiringRate(this,step,bin_size,opt)
+    function [rate,times] = getFiringRate(this,step,bin_size,opt) % OLD FIRING RATE CODE
       % getFiringRate Get firing rate as the number of spikes recorded in sliding windows of size bin_size
       % separated by intervals of size step, not normalized
       arguments
@@ -92,58 +58,7 @@ classdef region
       times = times(1:k:end).';
     end
 
-    function times = getAvalTimes(this,opt) % SHOULD ERROR IF NO avals OR no DT
-      arguments
-        this (1,1) region
-        opt.full (1,1) {mustBeLogical} = false % if true, get also times without aval
-      end
-      if opt.full
-        times = this.spike_dt/2 : this.spike_dt : (this.aval_indeces(end)-0.5)*this.spike_dt;
-      else
-        times = this.aval_indeces(:,1) * this.spike_dt - this.spike_dt/2;
-      end
-    end
-
-    function durations = getAvalDurations(this,opt) % CHANGE
-      arguments
-        this (1,1) region
-        opt.full (1,1) {mustBeLogical} = false % if true, get also zeros for all times without aval
-      end
-      if opt.full
-        durations = zeros(this.aval_indeces(end),1);
-        durations(this.aval_indeces(:,1)) = this.aval_durations;
-      else
-        durations = this.aval_durations;
-      end
-    end
-
     % methods to compute properties
-
-    
-
-    function this = computeICAvalanches(this, opt)
-    arguments
-      this (1,1) region
-      opt.threshold (1,1) double {mustBeNonnegative} = 2
-    end
-        if ~isempty(this.ICs_activity)
-            profile = sum(abs(zscore(this.ICs_activity))>opt.threshold,2);
-            this.ICaval_profile = profile;
-            ind = [true;profile(2:end)~=0|profile(1:end-1)~=0]; % ind(i) = 0 if i is repeated zero
-            % compute sizes
-            clean = profile(ind); % remove repeated zeros
-            this.ICaval_sizes = accumarray(cumsum(clean==0)+(profile(1)~=0),clean);
-            if this.ICaval_sizes(end) == 0 % remove last zero
-              this.ICaval_sizes = this.ICaval_sizes(1:end-1);
-            end
-            % compute indeces of avalanche initiation and ending times
-            this.ICaval_indeces = [find([profile(1)~=0;profile(2:end)~=0&profile(1:end-1)==0]), ...
-              find([profile(2:end)==0&profile(1:end-1)~=0;profile(end)~=0])];
-            this.ICaval_timeDependendentSize = clean;
-        else
-            [this.ICaval_profile, this.ICaval_sizes, this.ICaval_indeces, this.ICaval_timeDependendentSize] = deal(NaN);
-        end
-    end
 
     function maxes = binMaxAvalanches(this,bin_size)
       arguments

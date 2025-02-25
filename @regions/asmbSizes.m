@@ -6,9 +6,7 @@ arguments
   regs (:,1) double = [] % IMPLEMENT POSSIBILITY TO GIVE ACR?
 end
 
-if ~this.hasAssemblies()
-  error('asmbActivations:missingICA','Assemblies have not been computed.')
-end
+assert(this.hasAssemblies(),'asmbSizes:MissingAssemblies','Assemblies have not been computed.')
 
 % find requested regions
 [~,r_indeces,~,regs] = this.indeces([],regs);
