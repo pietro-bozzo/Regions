@@ -19,7 +19,7 @@ intervals = this.regions_array(r_index).aval_intervals;
 
 % apply restriction
 if ~isempty(opt.restriction)
-  intervals = intervals(intervals(:,2)>opt.restriction(1) & intervals(:,1)<opt.restriction(2),:);
+  intervals = intervals(intervals(:,2) >= opt.restriction(1) & intervals(:,1) <= opt.restriction(2),:);
 end
 
 % apply thresholding

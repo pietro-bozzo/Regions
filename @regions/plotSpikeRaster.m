@@ -20,7 +20,7 @@ function fig = plotSpikeRaster(this,start,stop,opt)
 
 arguments
   this (1,1) regions
-  start (1,1) double {mustBeNonnegative}
+  start (1,1) double
   stop (1,1) double {mustBeNonnegative}
   opt.states (:,1) string = []
   opt.regions (:,1) double = []
@@ -37,7 +37,9 @@ end
 
 % make figure
 fig = figure(Name='raster',NumberTitle='off',Position=get(0,'Screensize')); hold on
-title(append('Raster for ',this.printBasename()),FontSize=17,FontWeight='Normal');
+tit = "Raster for " + this.printBasename();
+if opt.avals, tit = tit+', w: '+num2str(this.aval_window)+' s, s: '+num2str(this.aval_smooth)+', t: '+num2str(this.aval_threshold); end
+title(tit);
 
 % get spikes to plot
 ticks = 0.5;
@@ -59,7 +61,7 @@ for s = 1 : numel(s_indeces)
     % keep spikes in requested time
     spikes = spikes(times > start & times < abs(stop),:);
     % relabel units to a contigous {1,...,N} set, preserving unit order
-    spikes = compactSpikes(spikes,neurons);
+    spikes = compactSpikes(spikes,neurons); % COULD ADD OPTION IN compactSpikes TO REMOVE DUMMY SPIKES
     spikes(:,2) = spikes(:,2) + n_units_cum;
     n_units_cum = n_units_cum + numel(neurons);
     s_spikes = [s_spikes;spikes];

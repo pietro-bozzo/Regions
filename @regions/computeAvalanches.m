@@ -1,5 +1,5 @@
 function this = computeAvalanches(this,window,smooth,threshold)
-% computeAvalanches Compute avalanches per region from spiking data
+% computeAvalanches Compute and store avalanches per region from spiking data
 %
 % arguments:
 %     window       double = 0.01, time bin (s) for avalanche computation
@@ -21,7 +21,9 @@ end
 for i = 1 : numel(this.ids)
   % detect avalanches on population firing rate
   [FR,time] = this.firingRate('all',this.ids(i),window=window,smooth=smooth);
-  [sizes,intervals] = avalanchesFromProfile(FR,time(2)-time(1),threshold);
+  profile = percentThreshold(FR,threshold);
+  [sizes,intervals] = avalanchesFromProfile(profile,window);
+  intervals = intervals + time(1); % avalanchesFromProfile assumes time starts at 0 s, add initial offset
   % save results in region object
   this.regions_array(i) = this.regions_array(i).setAvalanches(sizes,intervals);
 end

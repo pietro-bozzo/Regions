@@ -86,7 +86,7 @@ if opt.avals
   end
   for s = s_aval
     for r = 1 : numel(opt.regions)
-      aval_intervals = this.avalIntervals(this.states(s_indeces(s)),opt.regions(r),restriction=[start,max_stop]); % ,threshold=opt.aval_thresh
+      aval_intervals = this.avalIntervals(this.states(s_indeces(s)),opt.regions(r),restriction=[start,max_stop]);
       PlotIntervals(aval_intervals-this.aval_window/2,'color',[0.5,0.5,0.5],'alpha',0.15,'ylim',[r-1,r]*height,'legend','off','bottom',false)
     end
   end

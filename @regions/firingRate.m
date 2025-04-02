@@ -7,7 +7,8 @@ function [FR,time] = firingRate(this,state,regs,opt)
 %
 % name-value arguments:
 %     window     double = 0.05, time bin for firing rate computation
-%     smooth     double = 2, gaussian kernel std in number of samples
+%     smooth     double = 0.2, gaussian kernel std in number of samples, note that smooth * 5 is used internally,
+%                hence default is no smoothing
 %     nan_pad    logical = false, if true, append NaNs at the end of every state interval (useful for plotting)
 %
 % output:
@@ -24,7 +25,7 @@ arguments
   state (1,1) string = 'all'
   regs (:,1) double = []
   opt.window (1,1) double {mustBePositive} = 0.05
-  opt.smooth (1,1) double {mustBeNonnegative} = 2
+  opt.smooth (1,1) double {mustBeNonnegative} = 0.2
   opt.nan_pad (1,1) {mustBeLogical} = false
 end
 
@@ -53,27 +54,6 @@ for interval = event_stamps.'
   time = [time;freq(1:size(event_FR,1),1);];
 end
 
-%all_spikes = this.spikes(state,regs);
-
-% get firing rate of requested regions OLD
-% FR = [];
-% for r = r_indeces
-%   spike_times = this.regions_array(r).spikes(:,1);
-%   if ~isempty(spike_times)
-%     freq = Frequency(spike_times,'limits',[all_spikes(1,1),all_spikes(end,1)],'binSize',opt.window,'smooth',opt.smooth);
-%     FR = inhomogeneousHorzcat(FR,freq(:,2));
-%     % EXTRA CODE TO CHECK CONSISTENCY OF Frequency time, TO REMOVE
-%     if exist('time','var') % TEMP check TO SEE IF ALGO IS CONSISTENT
-%       min_len = min(size(time,1),size(freq,1));
-%       if any(time(1:min_len) - freq(1:min_len,1) > 1e-5)
-%         warning('Inconsistent time')
-%       end
-%     end
-%     % END OF EXTRA CODE
-%     time = freq(1:size(FR,1),1);
-%   end
-% end
-
 % filter by state
 if state ~= "all"
   ind = false(size(time)); % ind(i) = 1 iff time(i) is in state
@@ -94,17 +74,4 @@ if state ~= "all"
   time = time(ind,:);
 elseif opt.nan_pad
   FR = [FR;nan(1,size(FR,2))];
-end
-
-end
-
-function c = inhomogeneousHorzcat(a,b)
-  if isempty(a)
-    c = b;
-  elseif isempty(b)
-    c = a ;
-  else
-    min_len = min(size(a,1),size(b,1));
-    c = [a(1:min_len,:),b(1:min_len,:)];
-  end
 end
