@@ -9,13 +9,10 @@ classdef region
     neurons
     spikes    % matrix having sorted time stamps as first column and unit ids as second
     % avalanches
-    spike_dt % TO REMOVE
-    aval_threshold % TO REMOVE
-    aval_indeces % TO REMOVE
-    aval_profile % TO REMOVE
     aval_sizes
     aval_intervals
-    aval_timeDependendentSize
+    aval_profile
+    aval_timeDependendentSize % TO REMOVE
     % assemblies
     assemblies
     asmb_weights

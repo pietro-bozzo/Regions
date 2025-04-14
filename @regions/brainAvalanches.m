@@ -13,15 +13,28 @@ if ~this.hasAvalanches()
 end
 
 % find regions
-[~,~,~,opt.regions] = this.indeces([],opt.regions);
+%[~,~,~,opt.regions] = this.indeces([],opt.regions);
 
-% get profiles for each region
-profiles = [];
-for reg = opt.regions.'
-  [firing_rate,time] = this.firingRate('all',reg,window=this.aval_window,smooth=this.aval_smooth);
-  profile = percentThreshold(firing_rate,this.aval_threshold);
-  profiles = inhomogeneousHorzcat(profiles,profile);
-end
+% % get profiles for each region
+% profiles = [];
+% for reg = opt.regions.'
+%   [firing_rate,time] = this.firingRate('all',reg,window=this.aval_window,smooth=this.aval_smooth);
+%   % threshold firing rate differently for sleep and task
+%   profile = percentThreshold(firing_rate,this.aval_threshold);
+%   if this.aval_event_threshold ~= this.aval_threshold
+%     profile_task = percentThreshold(firing_rate,this.aval_event_threshold);
+%     % assign task profile to task intervals
+%     ind = false(size(time));
+%     for interval = vertcat(this.phase_stamps{~contains(this.phases,"sleep")}).'
+%       ind = ind | (time >= interval(1) & time <= interval(2));
+%     end
+%     profile(ind) = profile_task(ind);
+%   end
+%   profiles = inhomogeneousHorzcat(profiles,profile);
+% end
+
+% activity get profiles for each region
+[profiles,time] = this.avalProfiles('all',opt.regions);
 
 % apply time restriction
 if ~isempty(opt.restrict)

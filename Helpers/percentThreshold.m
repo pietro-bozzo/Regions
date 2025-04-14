@@ -19,6 +19,6 @@ arguments
   threshold (1,1) double {mustBeNonnegative,mustBeLessThanOrEqual(threshold,100)}
 end
 
-threshold = prctile(a,threshold) % ADD OPTION FOR DOUBLE SIDE THRESHOLDING TO INCREASE GENERALITY
+threshold = prctile(a,threshold);
 a = a - threshold;
 a(a<0) = 0;

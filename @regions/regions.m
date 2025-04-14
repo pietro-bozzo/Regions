@@ -18,11 +18,12 @@ properties (GetAccess = public, SetAccess = protected)
   state_stamps
   ids
   regions_array
-  %brain_array OLD
   % avalanches parameters
   aval_window
   aval_smooth
   aval_threshold
+  aval_event_threshold
+  aval_t0
   % assemblies parameters
   asmb_method
   asmb_state

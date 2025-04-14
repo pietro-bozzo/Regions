@@ -12,16 +12,8 @@ if ~this.hasAvalanches()
   error('brainATMs:MissingAvalanches','Avalanches have not been computed')
 end
 
-% find regions
-[~,~,~,opt.regions] = this.indeces([],opt.regions);
-
-% get profiles for each region
-profiles = [];
-for reg = opt.regions.'
-  [firing_rate,time] = this.firingRate('all',reg,window=this.aval_window,smooth=this.aval_smooth);
-  profile = percentThreshold(firing_rate,this.aval_threshold);
-  profiles = inhomogeneousHorzcat(profiles,profile);
-end
+% get activity profiles for each region
+[profiles,time] = this.avalProfiles('all',opt.regions);
 
 % apply time restriction
 if ~isempty(opt.restrict)
@@ -63,7 +55,7 @@ for i = 1 : numel(start) % MAYBE VECTORIZABLE
   A(:,:,i) = A(:,:,i) ./ repmat(Bj,numel(Bj),1);
 end
 % ignore zeros in avalanche ATMs WHY??
-A(A==0) = NaN;
+%A(A==0) = NaN;
 % mean ATM
 ATM = mean(A,3,"omitnan");
 % discard elements of ATM for which there less than 4 data points
