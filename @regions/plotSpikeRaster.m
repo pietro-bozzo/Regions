@@ -1,40 +1,57 @@
-function fig = plotSpikeRaster(this,start,stop,opt) % time_bin,
+function fig = plotSpikeRaster(this,start,stop,opt)
 % plotRaster Plot spike raster divided by regions
+%
+% arguments:
+%     start      double, xlim will be [start,stop]
+%     stop       double, default is max spike time
+%
+% name-value arguments:
+%     states     (n_states,1) string = [], behavioral states, defaults to all states
+%     regions    (n_regs,1) double = [], brain regions, defaults to all regions
+%     avals      logical = false, if true, plot avalanches
+%
+% output:
+%     fig        figure
+
+% Copyright (C) 2025 by Pietro Bozzo
+%
+% This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License
+% as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
 
 arguments
   this (1,1) regions
-  start (1,1) double {mustBeNonnegative}
-  %time_bin (1,1) double {mustBeNonnegative} TO IMPLEMENT
-  stop (1,1) double {mustBeNonnegative}
+  start (1,1) {mustBeNumeric} = 0
+  stop (1,1) {mustBeNumeric,mustBeNonnegative} = 0
   opt.states (:,1) string = []
   opt.regions (:,1) double = []
   opt.avals (1,1) {mustBeLogical} = false
-  opt.aval_thresh (1,1) double {mustBeNonnegative} = 0
-  opt.asmb (:,1) double {mustBeInteger,mustBePositive} = []
-  opt.ICs (:,1) double {mustBeInteger,mustBePositive} = []
-  opt.save (1,1) {mustBeLogical} = false
-  opt.show (1,1) {mustBeLogical} = true
+  opt.aval_thresh (1,1) double {mustBeNonnegative} = 0 % DEPRECATED
+  opt.asmb (:,1) double {mustBeInteger,mustBePositive} = [] % DEPRECATED
+  opt.ICs (:,1) double {mustBeInteger,mustBePositive} = [] % DEPRECATED
 end
 
 % find requested states and regions
-[s_indeces,r_indeces,opt.states] = this.indeces(opt.states,opt.regions);
+[s_indeces,r_indeces,opt.states] = this.indeces(opt.states,opt.regions,rearrange=true);
 
 % make figure
-fig = figure(Name='raster',NumberTitle='off',Position=get(0,'Screensize')); hold on
-title(append('Raster for ',this.printBasename()),FontSize=17,FontWeight='Normal');
+tit = "Raster for " + this.printBasename();
+if opt.avals, tit = tit+', w: '+num2str(this.aval_window)+' s, s: '+num2str(5*this.aval_smooth)+', t: '+num2str(this.aval_threshold); end
+fig = makeFigure('raster',tit);
 
-% loop over states and regions
+% get spikes to plot
 ticks = 0.5;
 labels = "";
 done_ticks = false;
 max_stop = stop;
+state_spikes = cell(numel(s_indeces),1);
 for s = 1 : numel(s_indeces)
-  state_spikes = [];
+  s_spikes = [];
   n_units_cum = 0;
   for r = r_indeces
     spikes = this.spikes(this.states(s_indeces(s)),this.ids(r));
     neurons = this.regions_array(r).neurons;
     times = spikes(:,1);
+    % update left xlim
     if stop <= 0
       stop = -times(end) - 0.001;
       max_stop = max([max_stop,abs(stop)]);
@@ -42,11 +59,10 @@ for s = 1 : numel(s_indeces)
     % keep spikes in requested time
     spikes = spikes(times > start & times < abs(stop),:);
     % relabel units to a contigous {1,...,N} set, preserving unit order
-    spikes = compactSpikes(spikes,neurons);
+    spikes = compactSpikes(spikes,neurons); % COULD ADD OPTION IN compactSpikes TO REMOVE DUMMY SPIKES
     spikes(:,2) = spikes(:,2) + n_units_cum;
     n_units_cum = n_units_cum + numel(neurons);
-    state_spikes = [state_spikes;spikes];
-    % plot avalanches TO IMPLEMENT
+    s_spikes = [s_spikes;spikes];
     % make y labels
     if ~done_ticks
       ticks = [ticks;(ticks(end)+n_units_cum+0.5)/2;n_units_cum+0.5];
@@ -54,8 +70,30 @@ for s = 1 : numel(s_indeces)
     end
   end
   done_ticks = true;
-  % plot spikes
-  raster(state_spikes,'color',myColors(s),'DisplayName',this.states(s_indeces(s)))
+  state_spikes{s} = s_spikes;
+end
+
+% plot avalanches
+if opt.avals
+  % if 'all' is among states, just plot its avalanches
+  s_aval = find(opt.states=='all');
+  if isempty(s_aval)
+    s_aval = s_indeces;
+  end
+  for s = s_aval
+    height_cum = 0.5;
+    for r = r_indeces
+      height = numel(this.regions_array(r).neurons);
+      aval_intervals = this.avalIntervals(this.states(s_indeces(s)),this.ids(r),restriction=[start,max_stop]); % ,threshold=opt.aval_thresh
+      PlotIntervals(aval_intervals,'color',[0.5,0.5,0.5],'alpha',0.15,'ylim',[height_cum,height_cum+height],'legend','off','bottom',false)
+      height_cum = height_cum + numel(this.regions_array(r).neurons);
+    end
+  end
+end
+
+% plot spikes
+for s = 1 : numel(s_indeces)
+  raster(state_spikes{s},'color',myColors(s,'IBMcb'),'DisplayName',this.states(s_indeces(s)))
 end
 
 % adjust plot
@@ -66,16 +104,9 @@ if ticks(end) == 0.5 % to prevent error in YLim=[0.5,ticks(end)] when no regions
   ticks(end) = 1;
 end
 adjustAxes(gca,'XLim',[start;max_stop],'YLim',[0.5,ticks(end)],'YTick',ticks,'YTickLabel',labels)
-xlabel('time (s)',FontSize=14);
-ylabel('units',FontSize=14);
+xlabel('time (s)');
+ylabel('units');
 legend()
-
-if opt.save
-  %saveas(fig,append(this.results_path,'/raster.',string(this.ids(i)),'.svg'),'svg')
-end
-if ~opt.show
-  close(fig)
-end
 
 
 

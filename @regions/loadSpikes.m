@@ -1,9 +1,23 @@
 function this = loadSpikes(this,opt)
-% loadSpikes Load Session .xml file and construct the regions_array using spikes
+% loadSpikes Load session spikes
+%
+% name-value arguments:
+%     load = true        logical, if true, load from spikes.mat, bypassing FMAT utilities
+%     test = false       logical, if true, load synthetic test spikes
+%     shuffle = false    logical, if true, shuffle spikes
+%
+% output:
+%     this               modified object
+
+% Copyright (C) 2025 by Pietro Bozzo
+%
+% This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License
+% as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
+
 arguments
   this (1,1) regions
-  opt.load (1,1) {mustBeLogical} = true     % load from .mat, bypassing FMAT
-  opt.test (1,1) {mustBeLogical} = false    % load synthetic test spikes
+  opt.load (1,1) {mustBeLogical} = true
+  opt.test (1,1) {mustBeLogical} = false
   opt.shuffle (1,1) {mustBeLogical} = false
 end
   
@@ -25,9 +39,14 @@ if loadFMAT && ~opt.test
   % load .xml file
   SetCurrentSession([char(fileparts(this.session_path)),'/',this.basename,'.xml'],'verbose','off');
   % load spikes
-  spikes = GetSpikeTimes([GetGroups,repmat(-1,length(GetGroups),1)],'output','full');
+  spikes = GetSpikeTimes('output','full');
+  spikes = spikes(~ismember(spikes(:,3),[0,1]),:); % remove samples from channels 0 and 1 (artifacts and MUA)
   if opt.load
-    save(append(this.session_path,'/Data/spikes.mat'),'spikes')
+    try
+      save(append(this.session_path,'/Data/spikes.mat'),'spikes')
+    catch ME
+      warning(ME.message)
+    end
   end
 end
 
@@ -60,10 +79,14 @@ else
   if ~isempty(setdiff(this.ids,found_ids))
     warning(append('Requested regions ',strjoin(string(setdiff(this.ids,found_ids)),','),' not found.'))
   end
+  this.ids = found_ids;
 end
-n_units_cum = 0;
-brain_neurons = []; % TO IMPLEMENT
+% save session duration, if no events where required
+if isscalar(this.phases) && this.phases == "all"
+  this.phase_stamps{1} = [labeled_spikes(1,1),labeled_spikes(end,1)];
+end
 % get spikes for each region
+n_units_cum = 0;
 for i = 1 : numel(this.ids)
   region_spikes = labeled_spikes(reg_ids==this.ids(i),:);
   % relabel units to a contigous {1,...,N} set, preserving unit order
@@ -74,5 +97,4 @@ for i = 1 : numel(this.ids)
   n_units_cum = n_units_cum + numel(region_neurons);
   % add region
   this.regions_array(i,1) = region(this.ids(i),region_neurons,region_spikes);
-  %brain_neurons = [brain_neurons;region_neurons]; TO IMPLEMENT  
 end

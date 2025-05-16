@@ -7,9 +7,7 @@ arguments
   regs (:,1) double = []
 end
 
-if ~this.hasAssemblies()
-  error('asmbActivations:missingICA','Assemblies have not been computed.')
-end
+assert(this.hasAssemblies(),'asmbActivations:MissingAssemblies','Assemblies have not been computed.')
 
 % find requested state and regions
 [s_index,r_indeces] = this.indeces(state,regs);

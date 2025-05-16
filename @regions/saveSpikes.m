@@ -6,9 +6,7 @@ arguments
   opt.folder (1,1) string = "" % subfoler of basename/Pietro, default is Data/Units
 end
 
-if isempty(this.ids)
-  error('saveNeurons:missingSpikes','Spikes have not been loaded.')
-end
+assert(this.hasSpikes(),'saveSpikes:MissingSpikes','Spikes have not been loaded.')
 
 % set default value
 if opt.folder == ""

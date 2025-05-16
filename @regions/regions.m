@@ -18,7 +18,12 @@ properties (GetAccess = public, SetAccess = protected)
   state_stamps
   ids
   regions_array
-  brain_array
+  % avalanches parameters
+  aval_window
+  aval_smooth
+  aval_threshold
+  aval_event_threshold
+  aval_t0
   % assemblies parameters
   asmb_method
   asmb_state
@@ -41,7 +46,7 @@ end
       arguments
         session (1,:) char
         opt.results_path (1,1) string = ""
-        opt.phases (:,1) = "all"
+        opt.events (:,1) = "all"
         opt.states (:,1) string = "all"
         opt.regions (:,1) double {mustBeInteger,mustBeNonnegative} = []
         opt.load_spikes (1,1) {mustBeLogical} = false
@@ -58,8 +63,8 @@ end
       obj.rat = str2double(obj.basename(4:6));
 
       % validate format of option phase REMOVE, SHOULD JUST BE NAMES OF EVENTS
-      if iscell(opt.phases)
-        for phase = opt.phases.'
+      if iscell(opt.events)
+        for phase = opt.events.'
           if ~isnumeric(phase{1})
             error('mustBeNumericOrString:WrongType','Invalid value for ''phases'' argument. Value must be a cell array of numerics or a string array.')
           else
@@ -70,25 +75,25 @@ end
             end
           end
         end
-        obj.phase_stamps = opt.phases; % keep user defined phase stamps
+        obj.phase_stamps = opt.events; % keep user defined phase stamps
       else
-        if isnumeric(opt.phases)
+        if isnumeric(opt.events)
           error('mustBeNumericOrString:WrongType','Invalid value for ''phase'' argument. Value must be a cell array of numerics or a string array.')
         end
         try
-          opt.phases = string(opt.phases);
+          opt.events = string(opt.events);
         catch
           error('mustBeNumericOrString:WrongType','Invalid value for ''phase'' argument. Value must be a cell array of numerics or a string array.')
         end
         % load protocol-phases time stamps required by the user
         obj.phase_stamps = {};
-        found_phase = false(numel(opt.phases),1);
-        if numel(opt.phases) ~= 1 || opt.phases ~= "all"
+        found_phase = false(numel(opt.events),1);
+        if numel(opt.events) ~= 1 || opt.events ~= "all" % SWITCH TO any(opt.events~="all") ?
           [events,stamps] = loadEvents(session);
-          for i = 1 : numel(events)
-            for j = 1 : numel(opt.phases)
+          for i = 1 : numel(events) % CAN USE ismember HERE
+            for j = 1 : numel(opt.events)
               % SHOULD ERROR IF I FIND 2 TIMES SAME PHASE AND WARN IF ORDER OF PHASES IS UNEXPECTED
-              if events(i) == opt.phases(j)
+              if events(i) == opt.events(j)
                 obj.phase_stamps{end+1,1} = stamps{i};
                 found_phase(j) = true;
               end
@@ -100,7 +105,7 @@ end
         if ~all(found_phase)
           error('regions:MissingEvents','Unable to find all requested events.')
         end
-        obj.phases = opt.phases;
+        obj.phases = opt.events;
       end
 
       % load behavioral-states time stamps IMPORVE: LOAD ALL EVENTS FOUND IN DATA USER NEEDS NOT SPECIFYING THEM AT CREATION AND ORDER IS FIXED
@@ -141,7 +146,6 @@ end
 
       % create arrays to store data
       obj.regions_array = region.empty;
-      obj.brain_array = brain.empty;
 
       % optionally, load spikes
       if opt.load_spikes

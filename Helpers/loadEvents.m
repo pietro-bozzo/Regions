@@ -7,7 +7,7 @@ end
 
 % read file
 [session_path,basename] = fileparts(session);
-fileID = fopen(append(session_path,'/',basename,'.cat.evt'));
+fileID = fopen(append(session_path,'/',basename,'.cat.evt'),'r');
 
 names = string.empty();
 times = {};
@@ -71,5 +71,11 @@ end
 
 fclose(fileID);
 
-% if LoadEvents errors when reading Rat###-########.cat.evt, there might be a BOM byte at the beginning of the fil, to remove on bash with: 
-% $ sed -i 's/\xef\xbb\xbf//' Rat003_20231217.cat.evt   
+% if loadEvents errors when reading Rat###-########.cat.evt, try one of:
+%
+% 1. remount disk containing the data
+%   $ sudo umount -l /disk/path
+%   $ sudo mount /disk/path
+%
+% 2. remove BOM byte at beginning of file
+%   $ sed -i 's/\xef\xbb\xbf//' Rat###-########.cat.evt   

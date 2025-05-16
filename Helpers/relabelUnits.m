@@ -24,7 +24,7 @@ else
 end
 
 % load file containing anatomical position of electrodes
-legend = readmatrix(opt.file_name,FileType='text');
+legend = readmatrix(opt.file_name,FileType='text',CommentStyle='%');
 if ~skip_filter
   legend = legend(legend(:,1)==rat,2:end); % keep only rat of interest
   if isempty(legend)
