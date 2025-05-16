@@ -22,7 +22,7 @@ end
 
 % if requested, output time for profiles
 if nargout > 1
-  time = this.aval_t0 : this.aval_window : this.aval_t0 + this.aval_window * size(profiles,1);
+  time = (this.aval_t0 : this.aval_window : this.aval_t0 + this.aval_window * (size(profiles,1)-1)).';
 end
 
 % filter by state NOT IMPLEMENTED

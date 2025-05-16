@@ -6,8 +6,8 @@ function fig = plotSpikeRaster(this,start,stop,opt)
 %     stop       double, default is max spike time
 %
 % name-value arguments:
-%     states     (n_states,1) string = [], behavioral state, default is 'all'
-%     regions    (n_regs,1) double = [], brain regions, default is all regions
+%     states     (n_states,1) string = [], behavioral states, defaults to all states
+%     regions    (n_regs,1) double = [], brain regions, defaults to all regions
 %     avals      logical = false, if true, plot avalanches
 %
 % output:
@@ -20,26 +20,23 @@ function fig = plotSpikeRaster(this,start,stop,opt)
 
 arguments
   this (1,1) regions
-  start (1,1) double
-  stop (1,1) double {mustBeNonnegative}
+  start (1,1) {mustBeNumeric} = 0
+  stop (1,1) {mustBeNumeric,mustBeNonnegative} = 0
   opt.states (:,1) string = []
   opt.regions (:,1) double = []
   opt.avals (1,1) {mustBeLogical} = false
-  opt.aval_thresh (1,1) double {mustBeNonnegative} = 0
-  opt.asmb (:,1) double {mustBeInteger,mustBePositive} = []
-  opt.ICs (:,1) double {mustBeInteger,mustBePositive} = []
-  opt.save (1,1) {mustBeLogical} = false
-  opt.show (1,1) {mustBeLogical} = true
+  opt.aval_thresh (1,1) double {mustBeNonnegative} = 0 % DEPRECATED
+  opt.asmb (:,1) double {mustBeInteger,mustBePositive} = [] % DEPRECATED
+  opt.ICs (:,1) double {mustBeInteger,mustBePositive} = [] % DEPRECATED
 end
 
 % find requested states and regions
 [s_indeces,r_indeces,opt.states] = this.indeces(opt.states,opt.regions,rearrange=true);
 
 % make figure
-fig = figure(Name='raster',NumberTitle='off',Position=get(0,'Screensize')); hold on
 tit = "Raster for " + this.printBasename();
-if opt.avals, tit = tit+', w: '+num2str(this.aval_window)+' s, s: '+num2str(this.aval_smooth)+', t: '+num2str(this.aval_threshold); end
-title(tit);
+if opt.avals, tit = tit+', w: '+num2str(this.aval_window)+' s, s: '+num2str(5*this.aval_smooth)+', t: '+num2str(this.aval_threshold); end
+fig = makeFigure('raster',tit);
 
 % get spikes to plot
 ticks = 0.5;
@@ -54,6 +51,7 @@ for s = 1 : numel(s_indeces)
     spikes = this.spikes(this.states(s_indeces(s)),this.ids(r));
     neurons = this.regions_array(r).neurons;
     times = spikes(:,1);
+    % update left xlim
     if stop <= 0
       stop = -times(end) - 0.001;
       max_stop = max([max_stop,abs(stop)]);
@@ -106,16 +104,9 @@ if ticks(end) == 0.5 % to prevent error in YLim=[0.5,ticks(end)] when no regions
   ticks(end) = 1;
 end
 adjustAxes(gca,'XLim',[start;max_stop],'YLim',[0.5,ticks(end)],'YTick',ticks,'YTickLabel',labels)
-xlabel('time (s)',FontSize=14);
-ylabel('units',FontSize=14);
+xlabel('time (s)');
+ylabel('units');
 legend()
-
-if opt.save
-  %saveas(fig,append(this.results_path,'/raster.',string(this.ids(i)),'.svg'),'svg')
-end
-if ~opt.show
-  close(fig)
-end
 
 
 

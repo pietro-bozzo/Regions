@@ -23,9 +23,9 @@ function [FR,time] = firingRate(this,state,regs,opt)
 arguments
   this (1,1) regions
   state (1,1) string = 'all'
-  regs (:,1) double = []
-  opt.window (1,1) double {mustBePositive} = 0.05
-  opt.smooth (1,1) double {mustBeNonnegative} = 0.2
+  regs (:,1) {mustBeNumeric,mustBeInteger} = []
+  opt.window (1,1) {mustBeNumeric,mustBePositive} = 0.05
+  opt.smooth (1,1) {mustBeNumeric,mustBeNonnegative} = 0.2
   opt.nan_pad (1,1) {mustBeLogical} = false
 end
 
@@ -68,6 +68,9 @@ if state ~= "all"
   if opt.nan_pad % add NaNs at the end of each valid time interval to allow plotting
     ind(nan_ind) = true;
     FR(nan_ind,:) = NaN;
+    if nan_ind(end) >= numel(time) % if necessary, extend time
+      time(end+1) = time(end) + time(end) - time(end-1);
+    end
   end
   % keep only state traces
   FR = FR(ind,:);
