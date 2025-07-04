@@ -33,7 +33,7 @@ end
 %   profiles = inhomogeneousHorzcat(profiles,profile);
 % end
 
-% activity get profiles for each region
+% get activity profiles for each region
 [profiles,time] = this.avalProfiles('all',opt.regions);
 
 % apply time restriction
