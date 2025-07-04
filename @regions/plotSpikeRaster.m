@@ -1,17 +1,20 @@
 function fig = plotSpikeRaster(this,start,stop,opt)
-% plotRaster Plot spike raster divided by regions
+% plotSpikeRaster Plot spike raster divided by regions
 %
 % arguments:
-%     start      double, xlim will be [start,stop]
-%     stop       double, default is max spike time
+%     start       double = 0, xlim will be [start,stop]
+%     stop        double = 0, defaults to max spike time
 %
 % name-value arguments:
-%     states     (n_states,1) string = [], behavioral states, defaults to all states
-%     regions    (n_regs,1) double = [], brain regions, defaults to all regions
-%     avals      logical = false, if true, plot avalanches
+%     states      (n_states,1) string = [], behavioral states, defaults to all states
+%     regions     (n_regs,1) double = [], brain regions, defaults to all regions
+%     avals       logical = false, if true, plot avalanches
+%     colors      spike colors, one per state or just one for all spikes
+%     lineProp    cell array of property-value pairs to set raster lines properties (see MATLAB Line Properties)
+%     ax          Axes = [], axes to plot on, default creates a new figure
 %
 % output:
-%     fig        figure
+%     fig         figure
 
 % Copyright (C) 2025 by Pietro Bozzo
 %
@@ -25,18 +28,45 @@ arguments
   opt.states (:,1) string = []
   opt.regions (:,1) double = []
   opt.avals (1,1) {mustBeLogical} = false
+  opt.colors = []
+  opt.lineProp (:,1) cell = {}
+  opt.ax (:,1) matlab.graphics.axis.Axes = matlab.graphics.axis.Axes.empty
   opt.aval_thresh (1,1) double {mustBeNonnegative} = 0 % DEPRECATED
   opt.asmb (:,1) double {mustBeInteger,mustBePositive} = [] % DEPRECATED
   opt.ICs (:,1) double {mustBeInteger,mustBePositive} = [] % DEPRECATED
 end
 
-% find requested states and regions
-[s_indeces,r_indeces,opt.states] = this.indeces(opt.states,opt.regions,rearrange=true);
+% validate input
+if stop ~= 0 && start >= stop
+  error('plotSpikeRaster:stopValue','Argument ''stop'' must be smaller than ''start''')
+end
 
-% make figure
-tit = "Raster for " + this.printBasename();
-if opt.avals, tit = tit+', w: '+num2str(this.aval_window)+' s, s: '+num2str(5*this.aval_smooth)+', t: '+num2str(this.aval_threshold); end
-fig = makeFigure('raster',tit);
+% find requested states and regions
+[s_indeces,r_indeces,opt.states,opt.regions] = this.indeces(opt.states,opt.regions,rearrange=true);
+
+% validate colors
+if isempty(opt.colors)
+  opt.colors = myColors(1:numel(s_indeces));
+else
+  try
+    opt.colors = validatecolor(opt.colors,'multiple');
+  catch ME
+    throw(ME)
+  end
+  if size(opt.colors,1) == 1
+    opt.colors = repmat(opt.colors,numel(s_indeces),1);
+  elseif size(opt.colors,1) ~= numel(s_indeces)
+    error('plotSpikeRaster:colorNumber',"Plotting "+num2str(numel(s_indeces))+' states but '+num2str(size(opt.colors,1))+' colors were given')
+  end
+end
+
+% make figure if no existing axes is specified
+if isempty(opt.ax)
+  tit = "Raster for " + this.printBasename();
+  if opt.avals, tit = tit+', w: '+num2str(this.aval_window)+' s, s: '+num2str(this.aval_smooth)+', t: '+num2str(this.aval_threshold); end
+  fig = makeFigure('raster',tit);
+  opt.ax = gca;
+end
 
 % get spikes to plot
 ticks = 0.5;
@@ -59,7 +89,7 @@ for s = 1 : numel(s_indeces)
     % keep spikes in requested time
     spikes = spikes(times > start & times < abs(stop),:);
     % relabel units to a contigous {1,...,N} set, preserving unit order
-    spikes = compactSpikes(spikes,neurons); % COULD ADD OPTION IN compactSpikes TO REMOVE DUMMY SPIKES
+    spikes = compactSpikes(spikes,neurons,clean=true);
     spikes(:,2) = spikes(:,2) + n_units_cum;
     n_units_cum = n_units_cum + numel(neurons);
     s_spikes = [s_spikes;spikes];
@@ -75,16 +105,19 @@ end
 
 % plot avalanches
 if opt.avals
-  % if 'all' is among states, just plot its avalanches
-  s_aval = find(opt.states=='all');
-  if isempty(s_aval)
-    s_aval = s_indeces;
-  end
-  for s = s_aval
+  % get indices again, this time with 'all' if all states are to plot
+  [s_ind_aval] = this.indeces(opt.states,opt.regions,fuse=true);
+  % set current axes, needed as PlotIntervals doesn't accept axes argument
+  axes(opt.ax)
+  for s = s_ind_aval
     height_cum = 0.5;
     for r = r_indeces
-      height = numel(this.regions_array(r).neurons);
-      aval_intervals = this.avalIntervals(this.states(s_indeces(s)),this.ids(r),restriction=[start,max_stop]); % ,threshold=opt.aval_thresh
+      height = this.nNeurons(opt.regions(r));
+      aval_intervals = this.avalIntervals(this.states(s),this.ids(r)); % ,threshold=opt.aval_thresh
+      % keep avalanches inside xlim
+      valid_ind = aval_intervals(:,1) < max_stop & aval_intervals(:,2) > start;
+      valid_ind = valid_ind | aval_intervals(:,1) < start & aval_intervals(:,2) > stop;
+      aval_intervals = aval_intervals(valid_ind,:);
       PlotIntervals(aval_intervals,'color',[0.5,0.5,0.5],'alpha',0.15,'ylim',[height_cum,height_cum+height],'legend','off','bottom',false)
       height_cum = height_cum + numel(this.regions_array(r).neurons);
     end
@@ -93,7 +126,7 @@ end
 
 % plot spikes
 for s = 1 : numel(s_indeces)
-  raster(state_spikes{s},'color',myColors(s,'IBMcb'),'DisplayName',this.states(s_indeces(s)))
+  raster(state_spikes{s},'Color',opt.colors(s,:),'DisplayName',this.states(s_indeces(s)),opt.lineProp{:},ax=opt.ax)
 end
 
 % adjust plot
@@ -103,10 +136,10 @@ end
 if ticks(end) == 0.5 % to prevent error in YLim=[0.5,ticks(end)] when no regions have spikes
   ticks(end) = 1;
 end
-adjustAxes(gca,'XLim',[start;max_stop],'YLim',[0.5,ticks(end)],'YTick',ticks,'YTickLabel',labels)
-xlabel('time (s)');
-ylabel('units');
-legend()
+adjustAxes(opt.ax,'XLim',[start;max_stop],'YLim',[0.5,ticks(end)],'YTick',ticks,'YTickLabel',labels)
+xlabel(opt.ax,'time (s)');
+ylabel(opt.ax,'units');
+legend(opt.ax)
 
 
 
@@ -121,7 +154,7 @@ if ~isempty(opt.ICs)
     brain = this.brain_array(j);
     activity = zscore(brain.ICs_activity);
     ind = brain.IC_time > start & brain.IC_time < max_stop;
-    plot(brain.IC_time(ind),activity(ind,opt.ICs)*5,Color=myColors(1));
+    plot(opt.ax,brain.IC_time(ind),activity(ind,opt.ICs)*5,Color=myColors(1));
   end
   yl = ylim; ylim([0,yl(2)]); ylabel('reactivation strength',FontSize=14); set(gca,YColor='k')
 end

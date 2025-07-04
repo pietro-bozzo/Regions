@@ -2,19 +2,26 @@ function fig = plotFiringRates(this,start,stop,step,opt)
 % plotFiringRates Plot firing rate divided by regions, computed via gaussian smoothing of spike count
 %
 % arguments:
-%     start      double = 0, xlim will be [start,stop]
-%     stop       double = 0, defaults to max spike time
-%     step       double = 0, time bin in s, defaults to 0.05 or avalanche time window if avals = true
+%     start        double = 0, xlim will be [start,stop]
+%     stop         double = 0, default is max spike time
+%     step         double = 0.05, time bin in s
 %
 % name-value arguments:
-%     states     (n_states,1) string = [], behavioral states, defaults to all states
-%     regions    (n_regs,1) double = [], brain regions, defaults to all regions
-%     smooth     double = [], gaussian kernel std in number of samples, defaults to no smoothing (or avalanche smooth if avals = true)
-%     avals      logical = false, if true, plot avalanches
-%     unit       string = 's', unit of time axis, either 's' or 'h'
+%     states       (n_states,1) string = [], behavioral states, defaults to all states
+%     regions      (n_regs,1) double = [], brain regions, defaults to all regions
+%     smooth       double = 1, gaussian kernel std in number of samples, default is no smoothing
+%     mode         string, either:
+%                    'fr'       :  population firing rate, default
+%                    'fr_norm'  :  firing rate normalized by number of neurons per region
+%                    'ratio'    :  ratio of active units
+%     avals        logical = false, if true, plot avalanches (and change values of step, smooth, and
+%                  mode to match those used to compute avalanches)
+%     scale        double, parameter to scale each region's plot
+%     unit         string = 's', unit of time axis, either 's' or 'h'
+%     ax           Axes = [], axes to plot on, default creates a new figure
 %
 % output:
-%     fig        figure
+%     fig          figure
 
 % Copyright (C) 2025 by Pietro Bozzo
 %
@@ -25,17 +32,23 @@ arguments
   this (1,1) regions
   start (1,1) {mustBeNumeric} = 0
   stop (1,1) {mustBeNumeric,mustBeNonnegative} = 0
-  step (1,1) {mustBeNumeric,mustBeNonnegative} = 0
+  step (1,1) {mustBeNumeric,mustBePositive} = 0.05
   opt.states (:,1) string = []
   opt.regions (:,1) {mustBeNumeric,mustBeInteger} = []
-  opt.smooth (:,1) {mustBeNumeric,mustBeNonnegative} = []
+  opt.smooth (1,1) {mustBeNumeric,mustBePositive} = 1
+  opt.mode (1,1) string {mustBeMember(opt.mode,["fr","fr_norm","ratio"])} = "fr"
   opt.avals (1,1) {mustBeLogical} = false
+  opt.scale (1,1) {mustBeNumeric,mustBeNonnegative} = 0
   opt.unit (1,1) string {mustBeMember(opt.unit,["s","h"])} = "s"
+  opt.ax (:,1) matlab.graphics.axis.Axes = matlab.graphics.axis.Axes.empty
 end
 
 % validate input
 if stop ~= 0 && stop <= start
-  error('plotFiringRates:timeInterval','Argument stop must be greater than start')
+  error('plotFiringRates:timeInterval','Argument ''stop'' must be greater than ''start''')
+end
+if numel(opt.ax) > 1
+  error('plotFiringRates:axesSize','Argument ''ax'' must be scalar')
 end
 
 % set default values
@@ -44,76 +57,104 @@ if opt.avals
     error('plotFiringRates:MissingAvalanches','Avalanches haven''t been computed.')
   end
   % default to same values used for avalanche detection
-  if step == 0, step = this.aval_window; end
-  if isempty(opt.smooth), opt.smooth = this.aval_smooth; end
-else
-  if step == 0, step = 0.05; end
-  if isempty(opt.smooth), opt.smooth = 0.2; end
+  step = this.aval_window;
+  opt.smooth = this.aval_smooth;
+  opt.mode = this.aval_method;
+end
+if opt.scale == 0
+  switch opt.mode
+    case "fr", opt.scale = 500;
+    case "fr_norm", opt.scale = 5;
+    case "ratio", opt.scale = 0.5;
+  end
 end
 
 % find requested states and regions
 [s_indeces,r_indeces,opt.states,opt.regions] = this.indeces(opt.states,opt.regions,rearrange=true);
 
-% make figure
-tit = "Firing rates for " + this.printBasename() + ', w: ' + num2str(step) + ' s, s: ' + num2str(5*opt.smooth);
-if opt.avals, tit = tit + ', t: ' + num2str(this.aval_threshold); end
-fig = makeFigure('firing_rate',tit);
-height = 500; % parameter to control height of each plot
+% make figure if no existing axes is specified
+if isempty(opt.ax)
+  tit = "Firing rates for " + this.printBasename() + ', w: ' + num2str(step) + ' s, s: ' + num2str(opt.smooth);
+  if opt.avals, tit = tit + ', t: ' + num2str(this.aval_threshold); end
+  fig = makeFigure('firing_rate',tit);
+  opt.ax = gca;
+end
 
 % get traces to plot
-max_stop = stop;
+[f_rate,time] = this.firingRate('all',opt.regions,window=step,smooth=opt.smooth,mode=opt.mode);
+
+% update right xlim
+if stop == 0
+  stop = time(end) + 0.001;
+end
+% filter in [start, stop]
+f_rate = Restrict([time,f_rate],[start,stop]);
+time = f_rate(:,1); f_rate = f_rate(:,2:end);
+
+% filter by state
 state_firing = cell(numel(s_indeces),1);
-times = cell(numel(s_indeces),1);
+state_time = cell(numel(s_indeces),1);
 for s = 1 : numel(s_indeces)
-  [f_rate,time] = this.firingRate(this.states(s_indeces(s)),this.ids(r_indeces),window=step,smooth=opt.smooth,nan_pad=true);
-  % update left xlim
-  if stop <= 0
-    stop = -time(end) - 0.001;
-    max_stop = max([max_stop,abs(stop)]);
+  s_time = []; s_firing = zeros(0,size(f_rate,2));
+  % elements of f_rate inside state
+  [~,ind] = Restrict(time,this.state_stamps{s_indeces(s)});
+  % points where state changes, to extend state interval and add NaN after
+  jump_ind = [false; ind(2:end) ~= ind(1:end-1)+1];
+  jump_ind_nan = jump_ind + jump_ind;
+  ind_extended = ind([jump_ind(2:end);false]) + 1;
+  if ~isempty(ind)
+    % assign elements to keep
+    new_time_ind = cumsum(jump_ind_nan+1);
+    s_time(new_time_ind,1) = time(ind);
+    s_firing(new_time_ind,:) = f_rate(ind,:);
   end
-  % keep traces in requested time
-  ind = time >= start & time <= abs(stop);
-  f_rate = f_rate(ind,:);
-  time = time(ind);
+  % extend each state interval by one point
+  new_ind_extended = find(jump_ind) + 2*(0 : sum(jump_ind)-1).';
+  s_time(new_ind_extended,1) = time(ind_extended);
+  s_firing(new_ind_extended,:) = f_rate(ind_extended,:);
+  % set NaNs between state-changes for plotting
+  new_nan_ind = [new_ind_extended+1; numel(s_time)+1];
+  s_time(new_nan_ind,1) = NaN;
+  s_firing(new_nan_ind,:) = NaN;
   % adjust traces
-  time = repmat([time;NaN],size(f_rate,2),1);
-  f_rate = f_rate + height * (0 : numel(r_indeces)-1); % adjust heights
-  f_rate = [f_rate;NaN(1,size(f_rate,2))]; % break plotting between lines
-  f_rate = f_rate(:); % flatten for plot
-  state_firing{s} = f_rate;
+  s_time = repmat(s_time,size(f_rate,2),1);
+  s_firing = s_firing + opt.scale * (0 : size(s_firing,2)-1); % adjust heights
+  s_firing = s_firing(:); % flatten for plot
   % adjust unit
-  if opt.unit == 'h'
-    time = time / 3600;
-  end
-  times{s} = time;
+  if opt.unit == 'h', s_time = s_time / 3600; end
+  % store to plot later
+  state_time{s} = s_time;
+  state_firing{s} = s_firing;
 end
 
 % plot avalanches
 if opt.avals
-  % if 'all' is among states, just plot its avalanches
-  s_aval = find(opt.states=='all');
-  if isempty(s_aval)
-    s_aval = s_indeces;
-  end
-  for s = s_aval
+  % get indices again, this time with 'all' if all states are to plot
+  [s_ind_aval] = this.indeces(opt.states,opt.regions,fuse=true);
+  % set current axes, needed as PlotIntervals doesn't accept axes argument
+  axes(opt.ax)
+  for s = s_ind_aval
     for r = 1 : numel(opt.regions)
-      aval_intervals = this.avalIntervals(this.states(s_indeces(s)),opt.regions(r),restriction=[start,max_stop]) - this.aval_window/2;
+      aval_intervals = this.avalIntervals(this.states(s),opt.regions(r)) - this.aval_window/2;
+      valid_ind = aval_intervals(:,1) < stop & aval_intervals(:,2) > start;
+      valid_ind = valid_ind | aval_intervals(:,1) < start & aval_intervals(:,2) > stop;
+      aval_intervals = aval_intervals(valid_ind,:);
       % adjust unit
       if opt.unit == 'h'
         aval_intervals = aval_intervals / 3600;
       end
-      PlotIntervals(aval_intervals,'color',[0.5,0.5,0.5],'alpha',0.15,'ylim',[r-1,r]*height,'legend','off','bottom',false)
+      PlotIntervals(aval_intervals,'color',[0.5,0.5,0.5],'alpha',0.15,'ylim',[r-1,r]*opt.scale,'legend','off','bottom',false)
     end
   end
 end
 
 % plot firing rates
 for s = 1 : numel(s_indeces)
-  plot(times{s},state_firing{s},Color=myColors(s,'IBMcb'),DisplayName=this.states(s_indeces(s)));
+  plot(opt.ax,state_time{s},state_firing{s},Color=myColors(s,'IBMcb'),DisplayName=this.states(s_indeces(s)));
 end
 
 % make y labels
-y_ticks = height / 2 * (0 : 2*numel(r_indeces));
+y_ticks = opt.scale / 2 * (0 : 2*numel(opt.regions));
 labels = regionID2Acr(opt.regions) + '\newlinen: ' + string(this.nNeurons(opt.regions)); % label is region acronym + number of neurons
 labels = [repmat("",size(r_indeces.')),labels].';
 labels = [labels(:);""];
@@ -121,9 +162,14 @@ labels = [labels(:);""];
 % adjust plot
 if opt.unit == 'h'
   start = start / 3600;
-  max_stop = max_stop / 3600;
+  stop = stop / 3600;
 end
-adjustAxes(gca,'XLim',[start;max_stop],'YLim',[0.5,y_ticks(end)],'YTick',y_ticks,'YTickLabel',labels)
-xlabel("time ("+opt.unit+')');
-ylabel('population firing rate (Hz)');
-legend()
+adjustAxes(opt.ax,'XLim',[start;stop],'YLim',[0,y_ticks(end)],'YTick',y_ticks,'YTickLabel',labels)
+xlabel(opt.ax,"time ("+opt.unit+')');
+switch opt.mode
+  case "fr", y_label = "population firing rate (Hz)";
+  case "fr_norm", y_label = "population firing rate (Hz/neuron)";
+  case "ratio", y_label = "population firing ratio (Hz)";
+end
+ylabel(opt.ax,y_label);
+legend(opt.ax)

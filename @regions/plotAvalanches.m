@@ -27,10 +27,8 @@ for s = 1 : numel(s_indeces)
   state = this.states(s_indeces(s));
   for r = 1 : numel(r_indeces)
     % get avalanches
-    [sizes,intervals] = this.avalSizes(state,this.ids(r_indeces(r)),nan_pad= step==0);
+    [sizes,intervals] = this.avalSizes(state,this.ids(r_indeces(r)),nan_pad= step==0);  
     if stop <= 0
-      %real_stops = intervals(~isnan(intervals(:,2)),2);
-      %stop = -real_stops(end) - 0.001;
       stop = -intervals(end,2) - 0.001;
       max_stop = max([max_stop,abs(stop)]);
     end
