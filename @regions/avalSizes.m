@@ -6,11 +6,11 @@ function [sizes,intervals] = avalSizes(this,state,region,opt)
 %     region         double, brain region
 %
 % name-value arguments:
-%     restriction    (n_restrict,2) double = [], each row is a [start,stop] interval, avalanches not falling
-%                    in one of these intervals will be discarded
+%     restriction    (n_restrict,2) double = [], each row is a [start,stop] interval, discard avalanches falling
+%                    outside one of these intervals
 %     nan_pad        logical = false, if true, add NaN to sizes every time the behavioral state changes
 %                    (useful for plotting)
-%     threshold      double = 0, NOT IMPLEMENTED
+%     threshold      double = 0, discard avalanches with size smaller than threshold
 %
 % output:
 %     sizes          (n_avals,1) double, avalanche sizes
@@ -26,10 +26,10 @@ function [sizes,intervals] = avalSizes(this,state,region,opt)
 arguments
   this (1,1) regions
   state (1,1) string
-  region (1,1) double
-  opt.restriction (:,2) double = []
+  region (1,1) {mustBeNumeric,mustBeInteger}
+  opt.restriction (:,2) {mustBeNumeric} = []
   opt.nan_pad (1,1) {mustBeLogical} = false
-  opt.threshold (1,1) double {mustBeNonnegative} = 0 % TO IMPLEMENT
+  opt.threshold (1,1) {mustBeNumeric,mustBeNonnegative} = 0
 end
 
 if ~this.hasAvalanches()
@@ -37,7 +37,11 @@ if ~this.hasAvalanches()
 end
 
 % find requested state and region
-[s_index,r_index] = this.indeces(state,region);
+try
+  [s_index,r_index] = this.indeces(state,region);
+catch ME
+  throw(ME)
+end
 
 % get intervals and sizes
 intervals = this.regions_array(r_index).aval_intervals;
@@ -45,17 +49,21 @@ sizes = this.regions_array(r_index).aval_sizes;
 
 % apply restriction
 if ~isempty(opt.restriction)
-  ind = intervals(:,1) > opt.restriction(1) & intervals(:,2) < opt.restriction(2);
+  [~,ind1] = Restrict(intervals(:,1),opt.restriction);
+  [~,ind2] = Restrict(intervals(:,2),opt.restriction);
+  ind = intersect(ind1,ind2);
   intervals = intervals(ind,:);
   sizes = sizes(ind);
 end
 
 % apply thresholding
-%if opt.threshold ~= 0
-%  intervals = intervals(this.aval_sizes>opt.threshold,:);
-%end
+if opt.threshold ~= 0
+  ind = sizes >= opt.threshold;
+  intervals = intervals(ind,:);
+  sizes = sizes(ind);
+end
 
-% filter by state
+% filter by state SHOULD DO WITH RESTRICT
 if state ~= "all"
   ind = false(size(intervals(:,1))); % ind(i) = 1 iff interval(i) is in state
   nan_ind = [];
@@ -67,6 +75,7 @@ if state ~= "all"
     end
   end
   if opt.nan_pad % add NaNs at the end of each state interval to allow plotting
+    intervals = [intervals;intervals(end,:)]; % extend intervals in case last one should be followed by a NaN
     ind(nan_ind) = true;
     sizes(nan_ind,:) = NaN;
   end

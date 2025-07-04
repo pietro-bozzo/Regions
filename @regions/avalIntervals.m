@@ -6,11 +6,11 @@ function intervals = avalIntervals(this,state,region,opt)
 %     region         double, brain region
 %
 % name-value arguments:
-%     restriction    (n_restrict,2) double = [], each row is a [start,stop] interval, avalanches not falling
-%                    in one of these intervals will be discarded
+%     restriction    (n_restrict,2) double = [], each row is a [start,stop] interval, discard avalanches falling
+%                    outside one of these intervals
 %     nan_pad        logical = false, if true, add [NaN,NaN] in between intervals every time the behavioral state changes
 %                    (useful for plotting)
-%     threshold      double = 0, NOT IMPLEMENTED
+%     threshold      double = 0, discard avalanches with duration smaller than threshold
 %
 % output:
 %     intervals      (n_avals,2) double, each row is the [start,stop] interval of an avalanche
@@ -26,7 +26,7 @@ arguments
   region (1,1) {mustBeNumeric,mustBeInteger}
   opt.restriction (:,2) {mustBeNumeric} = []
   opt.nan_pad (1,1) {mustBeLogical} = false
-  opt.threshold (1,1) {mustBeNumeric,mustBeNonnegative} = 0 % TO IMPLEMENT
+  opt.threshold (1,1) {mustBeNumeric,mustBeNonnegative} = 0
 end
 
 if ~this.hasAvalanches()
@@ -41,13 +41,16 @@ intervals = this.regions_array(r_index).aval_intervals;
 
 % apply restriction
 if ~isempty(opt.restriction)
-  intervals = intervals(intervals(:,2) >= opt.restriction(1) & intervals(:,1) <= opt.restriction(2),:);
+  [~,ind1] = Restrict(intervals(:,1),opt.restriction);
+  [~,ind2] = Restrict(intervals(:,2),opt.restriction);
+  intervals = intervals(intersect(ind1,ind2),:);
 end
 
 % apply thresholding
-%if opt.threshold ~= 0
-%  intervals = intervals(this.aval_sizes>opt.threshold,:);
-%end
+if opt.threshold ~= 0
+  ind = intervals(:,2)-intervals(:,1) >= opt.threshold;
+  intervals = intervals(ind,:);
+end
 
 % filter by state
 if state ~= "all"

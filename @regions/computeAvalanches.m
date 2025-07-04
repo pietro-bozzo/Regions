@@ -1,11 +1,19 @@
-function this = computeAvalanches(this,window,smooth,threshold,event_threshold)
+function this = computeAvalanches(this,window,smooth,threshold,event_threshold,opt)
 % computeAvalanches Compute and store avalanches per region from spiking data
 %
 % arguments:
-%     window             double = 0.01, time bin (s) for avalanche computation
-%     smooth             double = 2, gaussian kernel std in number of samples
+%     window             double, time bin (s) for avalanche computation
+%     smooth             double = 1, gaussian kernel std in number of samples, default is no smoothing
 %     threshold          double = 30, percentile of region firing rate for avalanche computation
-%     event_threshold    double = 0, threshold to use outside sleep events, defaults to threshold + 10
+%     event_threshold    double = threshold, threshold to use outside sleep events
+%
+% name-value arguments:
+%     perc               logical = true, if true, threshold is a percentile of region firing rate;
+%                        otherwise it's absolute
+%     mode               string, method used to compute firing rate, either:
+%                        'fr'       :  population firing rate, default
+%                        'fr_norm'  :  firing rate normalized by number of neurons per region
+%                        'ratio'    :  ratio of active units
 
 % Copyright (C) 2025 by Pietro Bozzo
 %
@@ -14,30 +22,41 @@ function this = computeAvalanches(this,window,smooth,threshold,event_threshold)
 
 arguments
   this (1,1) regions
-  window (1,1) double {mustBePositive} = 0.01 % i.e., 10 ms
-  smooth (1,1) double {mustBeNonnegative} = 2
-  threshold (1,1) double {mustBeNonnegative} = 30
-  event_threshold (1,1) double {mustBeNonnegative} = 0
+  window (1,1) {mustBeNumeric,mustBePositive}
+  smooth (1,1) {mustBeNumeric,mustBeGreaterThanOrEqual(smooth,1)} = 1
+  threshold (1,1) {mustBeNumeric,mustBeNonnegative} = 30
+  event_threshold (1,1) {mustBeNumeric,mustBeNonnegative} = threshold
+  opt.perc (1,1) {mustBeLogical} = true
+  opt.mode (1,1) string {mustBeMember(opt.mode,["fr","fr_norm","ratio"])} = "fr"
 end
 
-% set default value
-if event_threshold == 0, event_threshold = min(threshold+10,100); end
+[FR,time] = this.firingRate('all',window=window,smooth=smooth,mode=opt.mode);
 
 % detect avalanches on population firing rate
 for i = 1 : numel(this.ids)
-  [FR,time] = this.firingRate('all',this.ids(i),window=window,smooth=smooth);
   % threshold firing rate
-  profile = percentThreshold(FR,threshold);
-  % threshold differently for non sleep events
-  if event_threshold ~= threshold
-    profile_task = percentThreshold(FR,event_threshold);
-    % assign task profile to task intervals
-    ind = false(size(time));
-    for interval = vertcat(this.phase_stamps{~contains(this.phases,"sleep")}).'
-      ind = ind | (time >= interval(1) & time <= interval(2));
+  if opt.perc
+    % case 1: percentile threshold
+    profile = percentThreshold(FR(:,i),threshold);
+    if event_threshold ~= threshold
+      profile_task = percentThreshold(FR(:,i),event_threshold);
     end
+  else
+    % case 2: absolute threshold
+    profile = FR(:,i) - threshold;
+    profile(profile<0) = 0;
+    if event_threshold ~= threshold
+      profile_task = FR(:,i) - event_threshold;
+      profile_task(profile_task<0) = 0;
+    end
+  end
+  if event_threshold ~= threshold
+    % assign task profile to task intervals
+    non_sleep_int = vertcat(this.phase_stamps{~contains(this.phases,"sleep")});
+    [~,ind] = Restrict(time,non_sleep_int);
     profile(ind) = profile_task(ind);
   end
+
   % get avalanches
   [sizes,intervals] = avalanchesFromProfile(profile,window);
   intervals = intervals + time(1); % avalanchesFromProfile assumes time starts at 0 s, add initial offset
@@ -50,4 +69,5 @@ this.aval_window = window;
 this.aval_smooth = smooth;
 this.aval_threshold = threshold;
 this.aval_event_threshold = event_threshold;
+this.aval_method = opt.mode;
 this.aval_t0 = time(1);
