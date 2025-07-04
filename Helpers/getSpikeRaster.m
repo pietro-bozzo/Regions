@@ -1,52 +1,65 @@
-function [raster,bin_size] = getSpikeRaster(spikes,opt)
+function [raster,step] = getSpikeRaster(spikes,start,stop,opt)
 % getSpikeRaster Get raster matrix of size n_units x n_bins
 %
 % arguments:
-% spikes (:,2) double                      matrix havin = ng sorted time stamps as first column and unit ids as second
-% bin_size (1,1) double = 0                size of time bins in the raster, default is min inter-spike interval
-% end_time (1,1) double = spikes(end,1)    sup of raster time interval such that it is [0,end_time]
+%     spikes     (n_spikes,2) double, each row is [spike_time,unit_id]
+%     start      double = 0, x axis will be [start,stop] in s
+%     stop       double = 0, default is max spike time
+%
+% name-value arguments:
+%     step       double = 0.05, time bin in s, default is min inter-spike interval
+%     relabel    logical = true, if true, relabel units to a {1,...,N} set, preserving unit order in raster, e.g.,
+%                  spikes = [1,5;    has units {3,5,9,10} which will be rows {1,2,3,4} in raster
+%                            2,3;
+%                            3,2;
+%                            4,9]
+%     sparse     logical = true, if true, output is a sparse matrix, otherwise it's full
+
+% Copyright (C) 2025 by Pietro Bozzo
+%
+% This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License
+% as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
 
 arguments
-  spikes (:,2) double
-  opt.start_time (1,1) double {mustBeNonnegative} = 0
-  opt.bin_size (1,1) double {mustBeNonnegative} = 0
-  opt.end_time (1,1) double {mustBeNonnegative} = spikes(end,1)
+  spikes (:,2) {mustBeNumeric}
+  start (1,1) {mustBeNumeric,mustBeNonnegative} = 0
+  stop (1,1) {mustBeNumeric,mustBeNonnegative} = spikes(end,1)
+  opt.step (1,1) {mustBeNumeric,mustBeNonnegative} = 0
   opt.relabel (1,1) {mustBeLogical} = true
+  opt.sparse (1,1) {mustBeLogical} = true
 end
 
-if opt.bin_size == 0
+if opt.step == 0
   % compute default bin size
   time_steps = spikes(2:end,1)-spikes(1:end-1,1);
-  opt.bin_size = min(time_steps(time_steps~=0));
-end
-if opt.end_time == 0
-  % set default end time
-  opt.end_time = spikes(end,1);
+  opt.step = min(time_steps(time_steps~=0));
 end
 
 if opt.relabel
-  % relabel units to a {1,...,N} set; unit order is preserved in raster,
-  % e.g., spikes = [1,5;    has units {3,5,9,10} which will be rows {1,2,3,4} in raster
-  %                 2,3;
-  %                 3,10;
-  %                 4,9]
   [~,~,unit_label] = unique(spikes(:,2));
 else
   unit_label = spikes(:,2);
 end
-% discretize time
-edges = opt.start_time : opt.bin_size : opt.end_time+opt.bin_size;
-time_indeces = discretize(spikes(:,1),edges);
-valid_indeces = time_indeces(~isnan(time_indeces)); % remove NaNs as they are elments ouside [start_time, end_time]
-if ~isempty(valid_indeces) && valid_indeces(end) ~= length(edges)-1 % if there are trailing zeros in time
-  % add dummy spike to ensure final columns of zeros in raster
-  time_indeces = [time_indeces;length(edges)-1];
-  unit_label = [unit_label;1];
-end
+
+% keep samples in [start,stop], discretize time
+time_indeces = spikes(spikes(:,1) >= start & spikes(:,1) <= stop,1) - start;
+time_indeces = ceil(time_indeces / opt.step);
+time_indeces(time_indeces==0) = 1;
+
+% add dummy spike to ensure final columns of zeros in raster (for sparse mdoe)
+time_indeces = [time_indeces;ceil((stop-start)/opt.step)];
+unit_label = [unit_label;1];
+
 % create raster as sparse matrix
-raster = sparse(unit_label(~isnan(time_indeces)),time_indeces(~isnan(time_indeces)),true);
-if ~isempty(valid_indeces) && valid_indeces(end) ~= length(edges)-1 % remove previously added dummy spike
-  raster(1,end) = 0;
+if opt.sparse
+  raster = sparse(unit_label,time_indeces,true);
+else
+  raster_size = [max(unit_label),time_indeces(end)];
+  raster = false(raster_size);
+  raster(sub2ind(raster_size,unit_label,time_indeces)) = true;
 end
-% return used bin size
-bin_size = opt.bin_size;
+% remove dummy spike
+raster(1,end) = false;
+
+% return bin size
+step = opt.step;

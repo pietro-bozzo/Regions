@@ -6,7 +6,9 @@ arguments
   regs (:,1) double = []
 end
 
-assert(this.hasSpikes(),'nNeurons:MissingSpikes','Spikes have not been loaded.')
+if ~this.hasSpikes()
+  error('nNeurons:MissingSpikes','Spikes have not been loaded')
+end
 
 % find requested regions
 [~,r_indeces,~,regs] = this.indeces([],regs);

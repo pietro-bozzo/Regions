@@ -2,18 +2,21 @@ function [FR,time] = firingRate(this,state,regs,opt)
 % firingRate Get population firing rates via gaussian smoothing of spike counts
 %
 % arguments:
-%     state      string = 'all', behavioral state
-%     regs       (n_regs,1) double = [], brain regions, default is all regions
+%     state        string = 'all', behavioral state
+%     regs         (n_regs,1) double = [], brain regions, default is all regions
 %
 % name-value arguments:
-%     window     double = 0.05, time bin for firing rate computation
-%     smooth     double = 0.2, gaussian kernel std in number of samples, note that smooth * 5 is used internally,
-%                hence default is no smoothing
-%     nan_pad    logical = false, if true, append NaNs at the end of every state interval (useful for plotting)
+%     window       double = 0.05, time bin for firing rate computation
+%     smooth       double = 1, gaussian kernel std in number of samples, default is no smoothing
+%     mode         string, either:
+%                  'fr'       :  population firing rate, default
+%                  'fr_norm'  :  firing rate normalized by number of neurons per region
+%                  'ratio'    :  ratio of active units
+%     nan_pad      logical = false, if true, append NaNs at the end of every state interval (useful for plotting)
 %
 % output:
-%     FR         (n_times,n_regs) double, firing rate at every time step
-%     time       (n_times,1) double, time steps
+%     FR           (n_times,n_regs) double, firing rate at every time step
+%     time         (n_times,1) double, time steps
 
 % Copyright (C) 2025 by Pietro Bozzo
 %
@@ -25,7 +28,8 @@ arguments
   state (1,1) string = 'all'
   regs (:,1) {mustBeNumeric,mustBeInteger} = []
   opt.window (1,1) {mustBeNumeric,mustBePositive} = 0.05
-  opt.smooth (1,1) {mustBeNumeric,mustBeNonnegative} = 0.2
+  opt.smooth (1,1) {mustBeNumeric,mustBePositive} = 1
+  opt.mode (1,1) string {mustBeMember(opt.mode,["fr","fr_norm","ratio"])} = "fr"
   opt.nan_pad (1,1) {mustBeLogical} = false
 end
 
@@ -33,20 +37,33 @@ if ~this.hasSpikes()
   error('firingRate:missingSpikes','Spikes have not been loaded.')
 end
 
-% find requested state and regions
-[s_index,r_indeces,state] = this.indeces(state,regs);
+% select method
+if ismember(opt.mode,["fr","fr_norm"])
+  method = @(x,l,b,s) Frequency(x(:,1),'limits',l,'binSize',b,'smooth',s/5); % smooth / 5 to compensate for internal behavior of Frequency
+else
+  method = @(x,l,b,s) FiringRatio(x,'limits',l,'binSize',b,'smooth',s);
+end
 
-% get firing rate of requested regions
-event_stamps = vertcat(this.phase_stamps{:});
+% find state and regions
+try
+  [s_index,~,state,regs] = this.indeces(state,regs);
+catch ME
+  throw(ME)
+end
+
+% firing rate
+% restrict time in loaded events
+event_stamps = vertcat(this.event_stamps{:});
+event_stamps = ConsolidateIntervals(event_stamps,'epsilon',0.0001);
 FR = [];
 time = [];
 for interval = event_stamps.'
   event_FR = []; % all firing rates for this event
   freq = []; % store temporarily region firing rate and its time for this event
-  for r = r_indeces
-    spike_times = this.regions_array(r).spikes(:,1);
-    if ~isempty(spike_times)
-      freq = Frequency(spike_times,'limits',[interval(1),interval(2)],'binSize',opt.window,'smooth',opt.smooth);
+  for reg = regs.'
+    spikes = this.spikes('all',reg);
+    if ~isempty(spikes)
+      freq = method(spikes,[interval(1),interval(2)],opt.window,opt.smooth);
       event_FR = inhomogeneousHorzcat(event_FR,freq(:,2));
     end
   end
@@ -77,4 +94,9 @@ if state ~= "all"
   time = time(ind,:);
 elseif opt.nan_pad
   FR = [FR;nan(1,size(FR,2))];
+end
+
+% normalize
+if opt.mode == "fr_norm"
+  FR = FR ./ this.nNeurons(regs).';
 end

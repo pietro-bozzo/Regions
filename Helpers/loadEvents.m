@@ -1,5 +1,5 @@
 function [names,times] = loadEvents(session)
-% getEventStamps Load events struct from 'basename.cat.evt' file
+% loadEvents Load events' time stamps from 'basename.cat.evt' file
 
 arguments
   session (1,:) char
