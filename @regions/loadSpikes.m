@@ -7,7 +7,7 @@ function this = loadSpikes(this,opt)
 %     shuffle = false    logical, if true, shuffle spikes
 %
 % output:
-%     this               modified object
+%     this               modified regions object
 
 % Copyright (C) 2025 by Pietro Bozzo
 %
@@ -41,7 +41,7 @@ if loadFMAT && ~opt.test
   % load spikes
   spikes = GetSpikeTimes('output','full');
   spikes = spikes(~ismember(spikes(:,3),[0,1]),:); % remove samples from channels 0 and 1 (artifacts and MUA)
-  if opt.load
+  if opt.load && ~isempty(spikes)
     try
       save(append(this.session_path,'/Data/spikes.mat'),'spikes')
     catch ME
@@ -50,26 +50,23 @@ if loadFMAT && ~opt.test
   end
 end
 
-% filter spikes for protocol phase
-if numel(this.phase_stamps) > 1 || this.phases ~= "all"
-  restrict = [];
-  for stamps = this.phase_stamps.'
-    restrict = [restrict;stamps{1}];
-  end
-  spikes = Restrict(spikes,restrict,'shift','off');
+% filter spikes in required protocol events
+if ~this.all_events
+  any_event_stamps = sortrows(vertcat(this.event_stamps{:}));
+  spikes = Restrict(spikes,any_event_stamps,'shift','off');
 end
 
 % if requested, shuffle spikes preserving inter-spike interval for each unit
 if opt.shuffle
-  spikes = shuffleSpikes(spikes); % IF events ARE NOT CONTIGOUS THIS IS PROBLEMATIC, AN arg FOR shuffleSpikes SHOULD EXIST
+  spikes = shuffleSpikes(spikes); % IF events ARE NOT CONTIGOUS THIS IS PROBLEMATIC, SHUFFLE SHOULD BE DONE PER event
 end
   
 % assign unique labels to units
 legend_path = append(fileparts(this.session_path),'/',this.basename,'.cluloc');
 if ~isfile(legend_path)
-  legend_path = ""; % default to electrAnatPos.txt file
+  legend_path = ""; % default to electrAnatPos.txt file in Regions/Data
 end
-[labeled_spikes,reg_ids] = relabelUnits(spikes,this.rat,file_name=legend_path); % relabel spikes as [time,unique_unit_n]
+[labeled_spikes,reg_ids] = relabelUnits(spikes,this.rat,anat_file=legend_path); % relabel spikes as [time,unique_unit_n]
 valid_ids = reg_ids ~= 0; % remove bundles having no valid brain side
 unique_ids = unique(reg_ids(valid_ids));
 if isempty(this.ids) % default when user doesn't request specific regions
@@ -77,14 +74,20 @@ if isempty(this.ids) % default when user doesn't request specific regions
 else
   found_ids = intersect(this.ids,unique_ids); % requested regions found in data
   if ~isempty(setdiff(this.ids,found_ids))
-    warning(append('Requested regions ',strjoin(string(setdiff(this.ids,found_ids)),','),' not found.'))
+    warning(append('Requested regions ',strjoin(string(setdiff(this.ids,found_ids)),','),' not found'))
   end
   this.ids = found_ids;
 end
-% save session duration, if no events where required
-if isscalar(this.phases) && this.phases == "all"
-  this.phase_stamps{1} = [labeled_spikes(1,1),labeled_spikes(end,1)];
+if isempty(labeled_spikes)
+  warning('No spikes to load')
+  return
 end
+
+% save session duration as sole event time stamps, if no events where required DEPRECATED BUT USEFUL IF loadEvents ERRORS
+%if isscalar(this.phases) && this.phases == "all"
+%  this.phase_stamps{1} = this.state_stamps{end-1};
+%end
+
 % get spikes for each region
 n_units_cum = 0;
 for i = 1 : numel(this.ids)

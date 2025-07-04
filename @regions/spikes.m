@@ -1,12 +1,16 @@
-function spikes = spikes(this,state,regs)
+function spikes = spikes(this,state,regs,opt)
 % spikes Get spike samples
 %
 % arguments:
-%     state     string = 'all', behavioral state
-%     regs      (n_regs,1) double = [], brain regions, default is all regions
+%     state       string = 'all', behavioral state
+%     regs        (n_regs,1) double = [], brain regions, default is all regions
+%
+% name-value arguments:
+%     restrict    (n_intervals,2) double = [], each row is a [start,stop] interval, discard spikes falling
+%                 outside one of these intervals
 %
 % output:
-%     spikes    (n_spikes,2) double, spike samples, each row is [spike_time,unit_id]
+%     spikes      (n_spikes,2) double, spike samples, each row is [spike_time,unit_id]
 
 % Copyright (C) 2025 by Pietro Bozzo
 %
@@ -17,12 +21,19 @@ arguments
   this (1,1) regions
   state (1,1) string = "all"
   regs (:,1) double = [] % IMPLEMENT POSSIBILITY TO GIVE ACR?
+  opt.restrict (:,2) double = []
 end
 
-assert(this.hasSpikes(),'spikes:MissingSpikes','Spikes have not been loaded.')
+if ~this.hasSpikes()
+  error('spikes:MissingSpikes','Spikes have not been loaded')
+end
 
 % find requested state and regions
-[s_index,r_indeces] = this.indeces(state,regs);
+try
+  [s_index,r_indeces] = this.indeces(state,regs);
+catch ME
+  throw(ME)
+end
 
 % get activations of requested reagions
 spikes = [];
@@ -32,6 +43,11 @@ end
 
 % sort by time
 spikes = sortrows(spikes);
+
+% restrict
+if ~isempty(opt.restrict)
+  spikes = Restrict(spikes,opt.restrict,'shift','off');
+end
 
 % filter by state
 if state ~= "all"
