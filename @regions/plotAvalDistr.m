@@ -17,8 +17,6 @@ arguments
   this (1,1) regions
   opt.state (1,1) string = 'all'
   opt.regions (:,1) double = []
-  opt.save (1,1) {mustBeLogical} = false
-  opt.show (1,1) {mustBeLogical} = true
 end
 
 % make figure
@@ -51,10 +49,3 @@ end
 
 % plot distributions
 plotAvalDistrOnAxis(gca,sizes{:},labels=labels,colors=myColors(color_coding,'rainbow'));
-
-if opt.save
-  %saveas(fig,append(this.results_path,'/raster.',string(this.ids(i)),'.svg'),'svg')
-end
-if ~opt.show
-  close(fig)
-end

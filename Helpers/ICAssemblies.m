@@ -3,7 +3,7 @@ function [weights,otsuEigenvalues] = ICAssemblies(spikes,window,opt)
 
 arguments
   spikes (:,2) double
-  window (1,1) double {mustBePositive}
+  window (1,1) double {mustBePositive} % window of coactivation of units (usually, between 30 and 50 ms)
   opt.restrict (:,2) double {mustBeNonnegative} = [] % interval on which to perform ICA
   opt.units (:,1) double {mustBePositive} = [] % set of units to include in output weights, default is [1,max(units)]
 end

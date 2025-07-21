@@ -11,6 +11,7 @@ function [sizes,intervals] = avalSizes(this,state,region,opt)
 %     nan_pad        logical = false, if true, add NaN to sizes every time the behavioral state changes
 %                    (useful for plotting)
 %     threshold      double = 0, discard avalanches with size smaller than threshold
+%     d_threshold    double = 0, discard avalanches with duration smaller than d_threshold
 %
 % output:
 %     sizes          (n_avals,1) double, avalanche sizes
@@ -30,6 +31,7 @@ arguments
   opt.restriction (:,2) {mustBeNumeric} = []
   opt.nan_pad (1,1) {mustBeLogical} = false
   opt.threshold (1,1) {mustBeNumeric,mustBeNonnegative} = 0
+  opt.d_threshold (1,1) {mustBeNumeric,mustBeNonnegative} = 0
 end
 
 if ~this.hasAvalanches()
@@ -59,6 +61,11 @@ end
 % apply thresholding
 if opt.threshold ~= 0
   ind = sizes >= opt.threshold;
+  intervals = intervals(ind,:);
+  sizes = sizes(ind);
+end
+if opt.d_threshold ~= 0
+  ind = diff(intervals,1,2) >= opt.d_threshold;
   intervals = intervals(ind,:);
   sizes = sizes(ind);
 end

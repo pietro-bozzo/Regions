@@ -20,8 +20,14 @@ arguments
   opt.test (1,1) {mustBeLogical} = false
   opt.shuffle (1,1) {mustBeLogical} = false
 end
-  
+
+% NEW CODE :D
 % load spikes from disk
+% SetCurrentSession(fileparts(this.session_path)+"/"+this.basename+".xml",'verbose','off');
+% spikes = GetSpikeTimes('output','full');
+% spikes = spikes(~ismember(spikes(:,3),[0,1]),:); % remove samples from channels 0 and 1 (artifacts and MUA)
+
+% DEPRECATED
 loadFMAT = ~opt.load; % flag to load spikes using slower FMAT utility
 if opt.load
   if ~isfolder(append(this.session_path,'/Data'))
