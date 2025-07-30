@@ -7,6 +7,7 @@ function [FR,time] = firingRate(this,state,regs,opt)
 %
 % name-value arguments:
 %     window       double = 0.05, time bin for firing rate computation
+%     step         double = 1, windows will overlap of window/step, default is no overlap
 %     smooth       double = 1, gaussian kernel std in number of samples, default is no smoothing
 %     mode         string, either:
 %                  'fr'       :  population firing rate, default
@@ -28,6 +29,7 @@ arguments
   state (1,1) string = 'all'
   regs (:,1) {mustBeNumeric,mustBeInteger} = []
   opt.window (1,1) {mustBeNumeric,mustBePositive} = 0.05
+  opt.step (1,1) {mustBeNumeric,mustBeInteger,mustBePositive} = 1
   opt.smooth (1,1) {mustBeNumeric,mustBePositive} = 1
   opt.mode (1,1) string {mustBeMember(opt.mode,["fr","fr_norm","ratio"])} = "fr"
   opt.nan_pad (1,1) {mustBeLogical} = false
@@ -39,9 +41,9 @@ end
 
 % select method
 if ismember(opt.mode,["fr","fr_norm"])
-  method = @(x,l,b,s) Frequency(x(:,1),'limits',l,'binSize',b,'smooth',s/5); % smooth / 5 to compensate for internal behavior of Frequency
+  method = @(x,l,b,st,sm) Frequency(x(:,1),'limits',l,'binSize',b,'step',st,'smooth',sm/5); % smooth / 5 to compensate for internal behavior of Frequency
 else
-  method = @(x,l,b,s) FiringRatio(x,'limits',l,'binSize',b,'smooth',s);
+  method = @(x,l,b,st,sm) FiringRatio(x,'limits',l,'binSize',b,'step',st,'smooth',sm);
 end
 
 % find state and regions
@@ -63,7 +65,7 @@ for interval = event_stamps.'
   for reg = regs.'
     spikes = this.spikes('all',reg);
     if ~isempty(spikes)
-      freq = method(spikes,[interval(1),interval(2)],opt.window,opt.smooth);
+      freq = method(spikes,[interval(1),interval(2)],opt.window,opt.step,opt.smooth);
       event_FR = inhomogeneousHorzcat(event_FR,freq(:,2));
     end
   end

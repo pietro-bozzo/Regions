@@ -24,6 +24,7 @@ properties (GetAccess = public, SetAccess = protected)
   state_stamps
   ids
   regions_array
+  cluster_map % i-th row is [electrode group, cluster, channel] for unit i
   % avalanches parameters
   aval_window
   aval_smooth
@@ -66,41 +67,16 @@ end
       obj.session_path = append(session_path,'/Pietro');
       obj.rat = str2double(obj.basename(4:6));
 
-      % validate format of option phase REMOVE, SHOULD JUST BE NAMES OF EVENTS
-      % if iscell(opt.events)
-      %   for phase = opt.events.'
-      %     if ~isnumeric(phase{1})
-      %       error('mustBeNumericOrString:WrongType','Invalid value for ''phases'' argument. Value must be a cell array of numerics or a string array.')
-      %     else
-      %       if ~ismatrix(phase{1}) || size(phase{1},2) ~= 2
-      %         error('mustHaveDims:WrongDim','Invalid value for ''phases'' argument. Value must be a cell array of matrices with two columns.')
-      %       elseif any(any(phase{1}<0))
-      %         error('mustBeNonnegative:Negative','Invalid value for ''phases'' argument. Value must be non negative')
-      %       end
-      %     end
-      %   end
-      %   obj.phase_stamps = opt.events; % keep user defined phase stamps
-      % else
-      %   if isnumeric(opt.events)
-      %     error('mustBeNumericOrString:WrongType','Invalid value for ''phase'' argument. Value must be a cell array of numerics or a string array.')
-      %   end
-      %  try
-      %    opt.events = string(opt.events);
-      %  catch
-      %    error('mustBeNumericOrString:WrongType','Invalid value for ''phase'' argument. Value must be a cell array of numerics or a string array.')
-      %  end
-      % end
-
       % load protocol-events time stamps COULD ADD try catch AND HANDLE MISSING .cat.evt FILE AS I DID BEFORE
       [obj.event_names,obj.event_stamps] = loadEvents(session);
       if ~isscalar(opt.events) || opt.events ~= "all"
-        [~,event_indeces] = intersect(opt.events,obj.event_names,'stable');
-        obj.event_stamps = obj.event_stamps(event_indeces);
+        [~,event_indeces] = intersect(obj.event_names,opt.events,'stable');
         unknown_events = setdiff(opt.events,obj.event_names,'stable');
         if ~isempty(unknown_events)
           warning('regions:MissingEvents',"Unable to find events: "+strjoin(unknown_events,', '))
         end
         obj.event_names = obj.event_names(event_indeces);
+        obj.event_stamps = obj.event_stamps(event_indeces);
         obj.all_events = false;
       else
         obj.all_events = true;

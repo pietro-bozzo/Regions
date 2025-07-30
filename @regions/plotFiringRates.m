@@ -2,7 +2,7 @@ function fig = plotFiringRates(this,start,stop,step,opt)
 % plotFiringRates Plot firing rate divided by regions, computed via gaussian smoothing of spike count
 %
 % arguments:
-%     start        double = 0, xlim will be [start,stop]
+%     start        double = 0, xlim will be [start,stop] in s
 %     stop         double = 0, default is max spike time
 %     step         double = 0.05, time bin in s
 %

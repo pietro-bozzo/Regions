@@ -56,7 +56,7 @@ if loadFMAT && ~opt.test
   end
 end
 
-% filter spikes in required protocol events
+% restrict spikes in required protocol events
 if ~this.all_events
   any_event_stamps = sortrows(vertcat(this.event_stamps{:}));
   spikes = Restrict(spikes,any_event_stamps,'shift','off');
@@ -68,19 +68,20 @@ if opt.shuffle
 end
   
 % assign unique labels to units
-legend_path = append(fileparts(this.session_path),'/',this.basename,'.cluloc');
+legend_path = fileparts(this.session_path) + "/" + this.basename + ".chanat";
 if ~isfile(legend_path)
   legend_path = ""; % default to electrAnatPos.txt file in Regions/Data
 end
-[labeled_spikes,reg_ids] = relabelUnits(spikes,this.rat,anat_file=legend_path); % relabel spikes as [time,unique_unit_n]
-valid_ids = reg_ids ~= 0; % remove bundles having no valid brain side
-unique_ids = unique(reg_ids(valid_ids));
+% relabel spikes as [time,unique_unit_id] REPLACE session_path WITH REAL SESSION xml
+[labeled_spikes,region_ids,this.cluster_map,regs] = relabelUnits(fileparts(this.session_path)+"/"+this.basename+".xml",spikes,this.rat,regions=this.ids,anat_file=legend_path);
+%valid_ids = region_ids ~= 0; % remove electrode groups having no valid brain side NOT IMPLEMENTED
+%unique_ids = unique(region_ids(valid_ids));
 if isempty(this.ids) % default when user doesn't request specific regions
-  this.ids = unique_ids;
+  this.ids = regs;
 else
-  found_ids = intersect(this.ids,unique_ids); % requested regions found in data
+  found_ids = intersect(this.ids,regs); % requested regions found in data
   if ~isempty(setdiff(this.ids,found_ids))
-    warning(append('Requested regions ',strjoin(string(setdiff(this.ids,found_ids)),','),' not found'))
+    warning("Requested regions "+strjoin(string(setdiff(this.ids,found_ids)),',')+" not found")
   end
   this.ids = found_ids;
 end
@@ -94,16 +95,10 @@ end
 %  this.phase_stamps{1} = this.state_stamps{end-1};
 %end
 
-% get spikes for each region
-n_units_cum = 0;
+% spikes for each region
 for i = 1 : numel(this.ids)
-  region_spikes = labeled_spikes(reg_ids==this.ids(i),:);
-  % relabel units to a contigous {1,...,N} set, preserving unit order
-  [region_spikes,region_neurons] = compactSpikes(region_spikes);
-  % give units a unique id
-  region_neurons = (1 : numel(region_neurons)).' + n_units_cum;
-  region_spikes(:,2) = region_spikes(:,2) + n_units_cum;
-  n_units_cum = n_units_cum + numel(region_neurons);
-  % add region
-  this.regions_array(i,1) = region(this.ids(i),region_neurons,region_spikes);
+  region_spikes = labeled_spikes(region_ids==this.ids(i),:);
+  region_units = unique(region_spikes(:,2));
+  % add region to array
+  this.regions_array(i,1) = region(this.ids(i),region_units,region_spikes);
 end

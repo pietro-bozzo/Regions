@@ -1,11 +1,12 @@
-function intervals = stateIntervals(this,state)
+function intervals = stateIntervals(this,states)
 % stateIntervals Get behavioral state time intervals
 %
 % arguments:
-%     state     string, behavioral state
+%     states       (n_states,1) string, behavioral states
 %
 % output:
-%     intervals    (n_intervals,2) double, state intervals, each row is [start,stop] of when the animal was in the state
+%     intervals    (n_intervals,2) double, state intervals, each row is [start,stop] of when the animal was in the state;
+%                  intervals are sorted and consolidated (see ConsolidateIntervals)
 
 % Copyright (C) 2025 by Pietro Bozzo
 %
@@ -14,14 +15,19 @@ function intervals = stateIntervals(this,state)
 
 arguments
   this (1,1) regions
-  state (1,1) string
+  states (:,1) string
 end
 
 % find state
 try
-  s_index = this.indeces(state);
+  s_indeces = this.indeces(states);
 catch ME
   throw(ME)
 end
 
-intervals = this.state_stamps{s_index};
+intervals = vertcat(this.state_stamps{s_indeces});
+
+if numel(s_indeces) > 1
+  intervals = sortrows(intervals);
+  intervals = ConsolidateIntervals(intervals);
+end

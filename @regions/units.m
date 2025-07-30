@@ -1,5 +1,5 @@
-function [list,regs] = nNeurons(this,regs)
-% nNeurons Get list of number of neurons for regions
+function [list,regs] = units(this,regs)
+% nNeurons Get pooled list of units for regions
 
 arguments
   this (1,1) regions
@@ -19,5 +19,5 @@ end
 
 list = [];
 for r = r_indeces
-  list = [list;numel(this.regions_array(r).neurons)];
+  list = [list;this.regions_array(r).neurons];
 end

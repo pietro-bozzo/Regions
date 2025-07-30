@@ -2,8 +2,8 @@ function [fig,h] = plotSpikeRaster(this,start,stop,opt)
 % plotSpikeRaster Plot spike raster divided by regions
 %
 % arguments:
-%     start       double = 0, xlim will be [start,stop]
-%     stop        double = 0, defaults to max spike time
+%     start       double = 0, xlim will be [start,stop] in s
+%     stop        double = 0, default is max spike time
 %
 % name-value arguments:
 %     states      (n_states,1) string = [], behavioral states, defaults to all states
@@ -52,7 +52,7 @@ n_regions = numel(opt.regions);
 % validate colors
 make_legend = false; % make legend only if there's one color per state
 if isempty(opt.colors)
-  colors = repmat(myColors(1:n_states),1,n_regions);
+  colors = validateColors(repmat(myColors(1:n_states),1,n_regions));
   make_legend = true;
 else
   colors = validateColors(opt.colors);
@@ -138,7 +138,7 @@ if opt.avals
 end
 
 % plot spikes
-h = cellfun(@(x) RasterPlot(x.spikes,1.111,'Color',x.color,opt.lineProp{:},label=x.name,ax=opt.ax),spikes_cell);
+h = cellfun(@(x) RasterPlot(x.spikes,0.5/0.45,'Color',x.color,opt.lineProp{:},label=x.name,ax=opt.ax),spikes_cell);
 if make_legend
   legend(opt.ax)
 end
