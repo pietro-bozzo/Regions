@@ -15,7 +15,7 @@ classdef regions
 properties (GetAccess = public, SetAccess = protected)
   % data
   basename        % session basename, e.g., Rat386-20180918
-  session_path    % path to Pietro folder in this session
+  session_path    % path to session folder
   rat
   event_names
   event_stamps
@@ -27,6 +27,7 @@ properties (GetAccess = public, SetAccess = protected)
   cluster_map % i-th row is [electrode group, cluster, channel] for unit i
   % avalanches parameters
   aval_window
+  aval_step
   aval_smooth
   aval_threshold
   aval_event_threshold
@@ -58,55 +59,62 @@ end
         opt.states (:,1) string = "all"
         opt.regions (:,1) {mustBeNumeric,mustBeInteger,mustBeNonnegative} = []
         opt.load_spikes (1,1) {mustBeLogical} = true
+        opt.shuffle (1,1) {mustBeLogical} = false
         opt.verbose (1,1) {mustBeLogical} = true
       end
 
       % assign members
-      [session_path,basename] = fileparts(session);
-      obj.basename = basename;
-      obj.session_path = append(session_path,'/Pietro');
+      [obj.session_path,obj.basename] = fileparts(session);
       obj.rat = str2double(obj.basename(4:6));
 
       % load protocol-events time stamps COULD ADD try catch AND HANDLE MISSING .cat.evt FILE AS I DID BEFORE
-      [obj.event_names,obj.event_stamps] = loadEvents(session);
-      if ~isscalar(opt.events) || opt.events ~= "all"
-        [~,event_indeces] = intersect(obj.event_names,opt.events,'stable');
-        unknown_events = setdiff(opt.events,obj.event_names,'stable');
-        if ~isempty(unknown_events)
-          warning('regions:MissingEvents',"Unable to find events: "+strjoin(unknown_events,', '))
+      try
+        [obj.event_names,obj.event_stamps] = loadEvents(session);
+        if ~isscalar(opt.events) || opt.events ~= "all"
+          [~,event_indeces] = intersect(obj.event_names,opt.events,'stable');
+          unknown_events = setdiff(opt.events,obj.event_names,'stable');
+          if ~isempty(unknown_events)
+            warning('regions:MissingEvents',"Unable to find events: "+strjoin(unknown_events,', '))
+          end
+          obj.event_names = obj.event_names(event_indeces);
+          obj.event_stamps = obj.event_stamps(event_indeces);
+          obj.all_events = false;
+        else
+          obj.all_events = true;
         end
-        obj.event_names = obj.event_names(event_indeces);
-        obj.event_stamps = obj.event_stamps(event_indeces);
-        obj.all_events = false;
-      else
+      catch
+        obj.event_names = "<missing>";
+        obj.event_stamps = {};
         obj.all_events = true;
       end
       
       % load behavioral-states time stamps
       opt.states = opt.states(~ismember(opt.states,["all","other"])); % remove occurrencies of "all" and "other"
       obj.state_stamps = cell(numel(opt.states)+2,1);
-      events_path = session_path + "/";
+      events_path = obj.session_path;
       new_events_path = "";
-      if isfolder(events_path + 'events')
-        new_events_path = events_path + 'events/';
-        if isfolder(new_events_path + '2021')
-          new_events_path = new_events_path + '2021/';
+      if isfolder(fullfile(events_path,'events'))
+        new_events_path = fullfile(events_path,'events');
+        if isfolder(fullfile(new_events_path,'2021'))
+          new_events_path = fullfile(new_events_path,'2021');
         end
       end
       for i = 1 : numel(opt.states)
-        if new_events_path ~= "" && isfile(new_events_path + basename + '.' + opt.states(i))
-          obj.state_stamps{i} = readmatrix(new_events_path + basename + '.' + opt.states(i),FileType='text');
+        if new_events_path ~= "" && isfile(fullfile(new_events_path,obj.basename + "." + opt.states(i)))
+          obj.state_stamps{i} = readmatrix(fullfile(new_events_path,obj.basename + "." + opt.states(i)),FileType='text');
         else
-          obj.state_stamps{i} = readmatrix(events_path + basename + '.' + opt.states(i),FileType='text');
+          obj.state_stamps{i} = readmatrix(fullfile(events_path,obj.basename + "." + opt.states(i)),FileType='text');
         end
       end
       obj.states = [opt.states;"all";"other"];  % add "all" and "other" as special states
 
       % special-states stamps: "all" and "other"
-      obj.state_stamps{end-1} = [obj.event_stamps{1}(1),obj.event_stamps{end}(end)]; % all
-      obj.state_stamps{end} = obj.state_stamps{end-1}; % other
-      for s = obj.state_stamps(1:end-2).'
-        obj.state_stamps{end} = SubtractIntervals(obj.state_stamps{end},s{1});
+      if ~isscalar(obj.event_names) || obj.event_names ~= "<missing>"
+        obj.state_stamps{end-1} = [obj.event_stamps{1}(1),obj.event_stamps{end}(end)]; % all
+        obj.state_stamps{end} = obj.state_stamps{end-1}; % other
+        for s = obj.state_stamps(1:end-2).'
+          obj.state_stamps{end} = SubtractIntervals(obj.state_stamps{end},s{1});
+        end
       end
 
       % validate and assign region ids
@@ -121,7 +129,7 @@ end
 
       % load spikes
       if opt.load_spikes
-        obj = obj.loadSpikes();
+        obj = obj.loadSpikes(shuffle=opt.shuffle);
       end
 
       if opt.load_spikes && opt.verbose

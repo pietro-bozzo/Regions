@@ -75,6 +75,8 @@ if isempty(opt.ax)
   if opt.avals, tit = tit+', w: '+num2str(this.aval_window)+' s, s: '+num2str(this.aval_smooth)+', t: '+num2str(this.aval_threshold); end
   fig = makeFigure('raster',tit);
   opt.ax = gca;
+else
+  fig = ancestor(opt.ax,'figure');
 end
 
 % get spikes to plot
@@ -138,7 +140,8 @@ if opt.avals
 end
 
 % plot spikes
-h = cellfun(@(x) RasterPlot(x.spikes,0.5/0.45,'Color',x.color,opt.lineProp{:},label=x.name,ax=opt.ax),spikes_cell);
+h = cellfun(@(x) RasterPlot(x.spikes,0.5/0.45,'Color',x.color,opt.lineProp{:},label=x.name,ax=opt.ax),spikes_cell,UniformOutput=false);
+h = vertcat(h{:});
 if make_legend
   legend(opt.ax)
 end

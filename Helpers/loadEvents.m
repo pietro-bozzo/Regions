@@ -7,7 +7,11 @@ end
 
 % read file
 [session_path,basename] = fileparts(session);
-fileID = fopen(append(session_path,'/',basename,'.cat.evt'),'r');
+events_file = fullfile(session_path,basename+".cat.evt");
+if ~isfile(events_file)
+  error('loadEvents:missingFile',"Unable to find "+events_file)
+end
+fileID = fopen(events_file,'r');
 
 names = string.empty();
 times = {};
@@ -19,6 +23,7 @@ while ischar(line)
   line = fgetl(fileID);
   if ischar(line)
     line = replace(line,char(9),' '); % char(9) is tab
+    if double(line(1)) == 65279, line = line(2:end); end % remove leading BOM byte
     words = strsplit(line,' ');
 
     % check line format

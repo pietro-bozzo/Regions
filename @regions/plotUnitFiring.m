@@ -2,8 +2,8 @@ function fig = plotUnitFiring(this,start,stop,window,step,opt)
 % plotUnitFiring Plot firing rate of each unit per region
 %
 % arguments:
-%     start       double = NaN, xlim will be [start,stop] in s, default is session beginnnig
-%     stop        double = NaN, default is session end
+%     start       double = [], xlim will be [start,stop] in s, default is session beginnnig
+%     stop        double = [], default is session end
 %     window      double = 0.05, time bin in s
 %     step        double = 1, firing rates are computed in windows with overlap 'window' / 'step';
 %                 must be integer, default is no overlap
@@ -26,27 +26,27 @@ function fig = plotUnitFiring(this,start,stop,window,step,opt)
 
 arguments
   this (1,1) regions
-  start (1,1) {mustBeNumeric} = NaN
-  stop (1,1) {mustBeNumeric} = NaN
+  start {mustBeScalarOrEmpty,mustBeNumeric} = []
+  stop {mustBeScalarOrEmpty,mustBeNumeric} = []
   window (1,1) {mustBeNumeric,mustBePositive} = 0.05
   step (1,1) {mustBeNumeric,mustBeInteger,mustBePositive} = 1
   opt.states (:,1) string = []
   opt.regions (:,1) double = []
   opt.smooth (1,1) {mustBeNumeric,mustBePositive} = 1
   opt.clim (1,2) double = [NaN,NaN]
-  opt.ax (:,1) matlab.graphics.axis.Axes = matlab.graphics.axis.Axes.empty
+  opt.ax matlab.graphics.axis.Axes {mustBeScalarOrEmpty} = matlab.graphics.axis.Axes.empty
 end
 
 % validate input
 if start >= stop
-  error('plotUnitFiring:stopValue','Argument ''stop'' must be smaller than ''start''')
+  error('plotUnitFiring:stopValue','Argument ''start'' must be smaller than ''stop''')
 end
 
 % x limits
-if isnan(start)
+if isempty(start)
   start = this.event_stamps{1}(1);
 end
-if isnan(stop)
+if isempty(stop)
   stop = this.event_stamps{end}(end);
 end
 
@@ -56,7 +56,7 @@ n_regions = numel(opt.regions);
 
 % make figure if no existing axes is specified
 if isempty(opt.ax)
-  tit = "Unit firing for " + this.printBasename();
+  tit = "Unit firing, " + this.printBasename() + ', w: ' + num2str(window) + ' s, s: ' + num2str(step);
   fig = makeFigure('unit_fr',tit);
   opt.ax = gca;
 end

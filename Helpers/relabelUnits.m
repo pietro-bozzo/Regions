@@ -27,6 +27,10 @@ arguments
   opt.label_file (1,1) string = ''
 end
 
+% FIRST, LOOK for CE file, if it's there it contains acronyms - electrode groups
+% In that case, make up region ids no? And start having ids - labels in R
+% default for empty anat_file: CE, then Regions text file
+
 % load file containing anatomical position of electrodes
 skip_filter = false; % flag to skip filtering of legend for rat number
 if opt.anat_file == ""
@@ -94,6 +98,10 @@ labeled_spikes = [sorted_spikes(:,1),unit_labels];
 % if clusters were used, add channel information to unit_cluster_map
 if ~isempty(cluster_channel_legend)
   [~,legend_ind] = ismember(unit_cluster_map,cluster_channel_legend(:,1:2),'rows');
+  if any(legend_ind==0)
+    cluster_channel_legend = [cluster_channel_legend;0,0,NaN];
+    legend_ind(legend_ind==0) = size(cluster_channel_legend,1);
+  end
   unit_cluster_map = [unit_cluster_map,cluster_channel_legend(legend_ind,3)];
 else
   unit_cluster_map = [unit_cluster_map,nan(size(unit_cluster_map,1),1)];

@@ -27,33 +27,14 @@ classdef region
       % region Construct an instance of this class
       %   Detailed explanation goes here
       arguments
-        id (1,1) double {mustBeInteger} = -1 % uninitialized value
-        neurons (:,1) double {mustBeInteger,mustBePositive} = []
-        spikes (:,2) double = []
+        id (1,1) {mustBeNumeric,mustBeInteger} = -1 % uninitialized value
+        neurons (:,1) {mustBeNumeric,mustBeInteger,mustBePositive} = []
+        spikes (:,2) {mustBeNumeric} = []
       end
       obj.id = id;
       obj.n_neurons = numel(neurons);
       obj.neurons = neurons;
       obj.spikes = spikes;
-    end
-
-    % methods to compute properties
-
-    function maxes = binMaxAvalanches(this,bin_size)
-      arguments
-        this (1,1) region
-        bin_size (1,1) double {mustBePositive} % IN seconds
-      end
-      if any(isnan(this.aval_indeces))
-        maxes = NaN;
-      else
-        times = this.getAvalTimes();
-        bin_indeces = discretize(times,0:bin_size:max(times)+bin_size);
-        sorted_bins = sortrows([bin_indeces,this.aval_sizes],'descend');
-        [~,max_ind] = unique(sorted_bins(:,1));
-        maxes = sorted_bins(max_ind,2);
-      end
-    end
-        
+    end      
   end
 end

@@ -8,6 +8,8 @@ function this = computeAvalanches(this,window,smooth,threshold,event_threshold,o
 %     event_threshold    double = threshold, threshold to use outside sleep events
 %
 % name-value arguments:
+%     step               double = 1, firing rates are computed in windows with overlap 'window' / 'step';
+%                        must be integer, default is no overlap
 %     perc               logical = true, if true, threshold is a percentile of region firing rate;
 %                        otherwise it's absolute
 %     mode               string, method used to compute firing rate, either:
@@ -26,11 +28,12 @@ arguments
   smooth (1,1) {mustBeNumeric,mustBeGreaterThanOrEqual(smooth,1)} = 1
   threshold (1,1) {mustBeNumeric,mustBeNonnegative} = 30
   event_threshold (1,1) {mustBeNumeric,mustBeNonnegative} = threshold
+  opt.step (1,1) {mustBeNumeric,mustBeInteger,mustBePositive} = 1
   opt.perc (1,1) {mustBeLogical} = true
   opt.mode (1,1) string {mustBeMember(opt.mode,["fr","fr_norm","ratio"])} = "fr"
 end
 
-[FR,time] = this.firingRate('all',window=window,smooth=smooth,mode=opt.mode);
+[FR,time] = this.firingRate('all',window=window,step=opt.step,smooth=smooth,mode=opt.mode);
 
 % detect avalanches on population firing rate
 for i = 1 : numel(this.ids)
@@ -58,7 +61,7 @@ for i = 1 : numel(this.ids)
   end
 
   % get avalanches
-  [sizes,intervals] = avalanchesFromProfile(profile,window);
+  [sizes,intervals] = avalanchesFromProfile(profile,time(2)-time(1));
   intervals = intervals + time(1); % avalanchesFromProfile assumes time starts at 0 s, add initial offset
   % save results in region object
   this.regions_array(i) = this.regions_array(i).setAvalanches(sizes,intervals,profile);
@@ -66,6 +69,7 @@ end
 
 % store analysis parameters
 this.aval_window = window;
+this.aval_step = opt.step;
 this.aval_smooth = smooth;
 this.aval_threshold = threshold;
 this.aval_event_threshold = event_threshold;

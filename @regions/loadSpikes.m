@@ -21,40 +21,52 @@ arguments
   opt.shuffle (1,1) {mustBeLogical} = false
 end
 
-% NEW CODE :D
 % load spikes from disk
-% SetCurrentSession(fileparts(this.session_path)+"/"+this.basename+".xml",'verbose','off');
-% spikes = GetSpikeTimes('output','full');
-% spikes = spikes(~ismember(spikes(:,3),[0,1]),:); % remove samples from channels 0 and 1 (artifacts and MUA)
-
-% DEPRECATED
-loadFMAT = ~opt.load; % flag to load spikes using slower FMAT utility
-if opt.load
-  if ~isfolder(append(this.session_path,'/Data'))
-    mkdir(append(this.session_path,'/Data'))
-    loadFMAT = true;
-  elseif ~isfile(append(this.session_path,'/Data/spikes.mat'))
-    loadFMAT = true;
-  else
-    load(append(this.session_path,'/Data/spikes.mat'),'spikes');
-  end
-elseif opt.test
-  spikes = readmatrix(append(fileparts(this.session_path),'/',this.basename,'.test'),FileType="text");
-end
-if loadFMAT && ~opt.test
-  % load .xml file
-  SetCurrentSession([char(fileparts(this.session_path)),'/',this.basename,'.xml'],'verbose','off');
-  % load spikes
-  spikes = GetSpikeTimes('output','full');
-  spikes = spikes(~ismember(spikes(:,3),[0,1]),:); % remove samples from channels 0 and 1 (artifacts and MUA)
-  if opt.load && ~isempty(spikes)
+if opt.test
+  spikes = readmatrix(fullfile(this.session_path,this.basename,+".test"),FileType="text");
+else
+  if opt.load
     try
-      save(append(this.session_path,'/Data/spikes.mat'),'spikes')
-    catch ME
-      warning(ME.message)
+      spikes = GetSpikeTimes('session',fullfile(this.session_path,this.basename+".xml"),'output','full');
+    catch
+      opt.load = false;
     end
   end
+  if ~opt.load
+    SetCurrentSession(fullfile(this.session_path,this.basename+".xml"))
+    spikes = GetSpikeTimes('output','full');
+    spikes = spikes(~ismember(spikes(:,3),[0,1]),:); % remove samples from channels 0 and 1 (artifacts and MUA)
+  end
 end
+
+% DEPRECATED
+% loadFMAT = ~opt.load; % flag to load spikes using slower FMAT utility
+% if opt.load
+%   if ~isfolder(append(this.session_path,'/Data'))
+%     mkdir(append(this.session_path,'/Data'))
+%     loadFMAT = true;
+%   elseif ~isfile(append(this.session_path,'/Data/spikes.mat'))
+%     loadFMAT = true;
+%   else
+%     load(append(this.session_path,'/Data/spikes.mat'),'spikes');
+%   end
+% elseif opt.test
+%   spikes = readmatrix(append(fileparts(this.session_path),'/',this.basename,'.test'),FileType="text");
+% end
+% if loadFMAT && ~opt.test
+%   % load .xml file
+%   SetCurrentSession([char(fileparts(this.session_path)),'/',this.basename,'.xml'],'verbose','off');
+%   % load spikes
+%   spikes = GetSpikeTimes('output','full');
+%   spikes = spikes(~ismember(spikes(:,3),[0,1]),:); % remove samples from channels 0 and 1 (artifacts and MUA)
+%   if opt.load && ~isempty(spikes)
+%     try
+%       save(append(this.session_path,'/Data/spikes.mat'),'spikes')
+%     catch ME
+%       warning(ME.message)
+%     end
+%   end
+% end
 
 % restrict spikes in required protocol events
 if ~this.all_events
@@ -62,20 +74,23 @@ if ~this.all_events
   spikes = Restrict(spikes,any_event_stamps,'shift','off');
 end
 
-% if requested, shuffle spikes preserving inter-spike interval for each unit
+% shuffle spikes preserving inter-spike interval for each unit
 if opt.shuffle
-  spikes = shuffleSpikes(spikes); % IF events ARE NOT CONTIGOUS THIS IS PROBLEMATIC, SHUFFLE SHOULD BE DONE PER event
+  shuffled_spikes = cell(size(this.event_stamps));
+  for i = 1 : numel(this.event_stamps)
+    event_spikes = Restrict(spikes,this.event_stamps{i});
+    shuffled_spikes{i} = shuffleSpikes(event_spikes,this.event_stamps{i}(1));
+  end
+  spikes = vertcat(shuffled_spikes{:});
 end
   
 % assign unique labels to units
-legend_path = fileparts(this.session_path) + "/" + this.basename + ".chanat";
+legend_path = fullfile(this.session_path,this.basename+".chanat");
 if ~isfile(legend_path)
   legend_path = ""; % default to electrAnatPos.txt file in Regions/Data
 end
-% relabel spikes as [time,unique_unit_id] REPLACE session_path WITH REAL SESSION xml
-[labeled_spikes,region_ids,this.cluster_map,regs] = relabelUnits(fileparts(this.session_path)+"/"+this.basename+".xml",spikes,this.rat,regions=this.ids,anat_file=legend_path);
-%valid_ids = region_ids ~= 0; % remove electrode groups having no valid brain side NOT IMPLEMENTED
-%unique_ids = unique(region_ids(valid_ids));
+% relabel spikes as [time,unique_unit_id]
+[labeled_spikes,region_ids,this.cluster_map,regs] = relabelUnits(fullfile(this.session_path,this.basename+".xml"),spikes,this.rat,regions=this.ids,anat_file=legend_path);
 if isempty(this.ids) % default when user doesn't request specific regions
   this.ids = regs;
 else
@@ -90,10 +105,15 @@ if isempty(labeled_spikes)
   return
 end
 
-% save session duration as sole event time stamps, if no events where required DEPRECATED BUT USEFUL IF loadEvents ERRORS
-%if isscalar(this.phases) && this.phases == "all"
-%  this.phase_stamps{1} = this.state_stamps{end-1};
-%end
+% use spikes to deduce session duration if loadEvents failed
+if isscalar(this.event_names) && this.event_names == "<missing>"
+  this.event_stamps{1} = [spikes(1,1),spikes(end,1)];
+  this.state_stamps{end-1} = this.event_stamps{1}; % all
+  this.state_stamps{end} = this.state_stamps{end-1}; % other
+  for s = this.state_stamps(1:end-2).'
+    obj.state_stamps{end} = SubtractIntervals(obj.state_stamps{end},s{1});
+  end
+end
 
 % spikes for each region
 for i = 1 : numel(this.ids)
