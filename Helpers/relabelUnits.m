@@ -2,7 +2,7 @@ function [labeled_spikes,region_ids,unit_cluster_map,regs] = relabelUnits(sessio
 % relabelUnits Get spikes relabeled as [time,unit_id], sorted by region
 %
 % arguments:
-%     session             DESCRIBE
+%     session             string, path to session .xml file
 %     spikes              (n_spikes,3) double, each row is [spike_time,electrode_group,cluster_id]
 %     rat                 double, rat number
 %     anat_file           string, file containing legend between unit ids and anatomical location
@@ -26,10 +26,6 @@ arguments
   opt.regions (:,1) string = []
   opt.label_file (1,1) string = ''
 end
-
-% FIRST, LOOK for CE file, if it's there it contains acronyms - electrode groups
-% In that case, make up region ids no?
-% default for empty anat_file: CE, then Regions text file
 
 % load file containing anatomical position of electrodes
 [~,basename,extension] = fileparts(anat_file);

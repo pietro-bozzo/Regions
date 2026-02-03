@@ -5,7 +5,7 @@ function this = loadSpikes(this,opt)
 %     load       logical = true, if true, load from spikes.mat, bypassing FMAT utilities
 %     mat        logical = false, if true, load spikes from /<basename>/Regions/Data/spikes.mat
 %     test       logical = false, if true, load synthetic test spikes
-%     legend     string = "", file containing legend between unit ids and anatomical location, default is electrAnatPos.txt from folder Regions/Data
+%     legend     string = "", file containing legend between unit ids and anatomical location, default is nonlateral.anatomy from folder Regions/Data
 %     shuffle    logical = false, if true, shuffle spikes
 %
 % output:
@@ -29,7 +29,7 @@ end
 if opt.legend == ""
   %opt.legend = fullfile(this.session_path,this.basename+".chanat"); % NOT IMPLEMENTED FOR NOW
   %if ~isfile(opt.legend)
-    opt.legend = dataPath()+"/nonlateral.anat"; % default to electrAnatPos.txt file in Regions/Data  % WAS '/electrAnatPos.txt'
+    opt.legend = fullfile(dataPath(),'nonlateral.anat'); % default to nonlateral.anatomy file in Regions/Data
   %end
 end
 
@@ -52,35 +52,6 @@ else
     spikes = spikes(~ismember(spikes(:,3),[0,1]),:); % remove samples from channels 0 and 1 (artifacts and MUA)
   end
 end
-
-% DEPRECATED
-% loadFMAT = ~opt.load; % flag to load spikes using slower FMAT utility
-% if opt.load
-%   if ~isfolder(append(this.session_path,'/Data'))
-%     mkdir(append(this.session_path,'/Data'))
-%     loadFMAT = true;
-%   elseif ~isfile(append(this.session_path,'/Data/spikes.mat'))
-%     loadFMAT = true;
-%   else
-%     load(append(this.session_path,'/Data/spikes.mat'),'spikes');
-%   end
-% elseif opt.test
-%   spikes = readmatrix(append(fileparts(this.session_path),'/',this.basename,'.test'),FileType="text");
-% end
-% if loadFMAT && ~opt.test
-%   % load .xml file
-%   SetCurrentSession([char(fileparts(this.session_path)),'/',this.basename,'.xml'],'verbose','off');
-%   % load spikes
-%   spikes = GetSpikeTimes('output','full');
-%   spikes = spikes(~ismember(spikes(:,3),[0,1]),:); % remove samples from channels 0 and 1 (artifacts and MUA)
-%   if opt.load && ~isempty(spikes)
-%     try
-%       save(append(this.session_path,'/Data/spikes.mat'),'spikes')
-%     catch ME
-%       warning(ME.message)
-%     end
-%   end
-% end
 
 % restrict spikes in required protocol events
 if ~this.phase.all

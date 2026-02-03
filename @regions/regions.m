@@ -1,11 +1,6 @@
 classdef regions
 % regions Handles multi-region spiking data, recording session info, and computes quantities per region
 % (e.g., firing rates, avalanches, assemblies)
-%
-% properties:
-%
-% methods:
-%
 
 % requires FMAToolbox, ISAC, region
 
@@ -22,11 +17,6 @@ properties (GetAccess = public, SetAccess = protected)
   phase
   state
   event
-%   event_names % replaced by phase.names
-%   event_stamps % replaced by phase.times
-%   all_events % replaced by phase.all
-%   states
-%   state_stamps
   ids
   regions_array
   cluster_map % i-th row is [electrode group, cluster, channel] for unit i
@@ -50,13 +40,18 @@ end
       % regions Class constructor
       %
       % arguments:
-      %     session (1,:) string
-      %     legend (1,1) string = ""
-      %     phases (:,1) string = "all"    names of recording session phases
-      %     states (:,1) string = "all"    states to load, default aggregates all data in a single state named "all"
-      %     events (:,1) string = "all"    other events to load
-      %     regions (:,1) string = []      regions to load, default loads all regions of data
-      %     load_spikes (1,1) {mustBeLogical} = false    if false, do not load spikes, to access just states and events
+      %     session         string, path to session .xml file
+      %
+      % name-value arguments:
+      %     legend          string = "", path to .anatomy file, default is nonlateral.anatomy from folder Regions/Data
+      %     phases          (:,1) string = "all", names of recording session phases to load
+      %     states          (:,1) string = "all", states to load, default aggregates all data in a single state named "all"
+      %     events          (:,1) string = "all", other events to load
+      %     regions         (:,1) string = [], regions to load, default loads all recorded regions
+      %     load_spikes     logical = true, if false, do not load spikes, to access just states and events
+      %     mat             logical = false, load spikes from /<basename>/Regions/Data/spikes.mat
+      %     shuffle         logical = false, shuffle spikes inside each recording session phase
+      %     verbose         logical = true, log progress to console
 
       arguments
         session (1,1) string
