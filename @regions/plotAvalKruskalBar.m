@@ -25,7 +25,7 @@ for i = i_indeces
     sizes = [sizes;s];
     groups = [groups;repmat(j,size(s))];
     if ~title_ready
-      states_title = append(states_title,string(this.states(j)),', ');
+      states_title = append(states_title,string(this.state.names(j)),', ');
     end
   end
   title_ready = true;

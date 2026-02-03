@@ -8,7 +8,7 @@ function [fig,h] = plotFiringRates(this,start,stop,window,opt)
 %
 % name-value arguments:
 %     states     (n_states,1) string = [], behavioral states, defaults to all states
-%     regions    (n_regs,1) double = [], brain regions, defaults to all regions
+%     regions    (n_regs,1) = [], brain regions, defaults to all regions
 %     step       double = 1, firing rates are computed in windows with overlap 'window' / 'step';
 %                must be integer, default is no overlap
 %     smooth     double = 1, gaussian kernel std in number of samples, default is no smoothing
@@ -36,7 +36,7 @@ arguments
   stop {mustBeScalarOrEmpty,mustBeNumeric} = []
   window (1,1) {mustBeNumeric,mustBePositive} = 0.05
   opt.states (:,1) string = []
-  opt.regions (:,1) {mustBeNumeric,mustBeInteger} = []
+  opt.regions (:,1) string = []
   opt.step (1,1) {mustBeNumeric,mustBeInteger,mustBePositive} = 1
   opt.smooth (1,1) {mustBeNumeric,mustBePositive} = 1
   opt.mode (1,1) string {mustBeMember(opt.mode,["fr","fr_norm","ratio"])} = "fr"
@@ -72,14 +72,14 @@ end
 
 % x limits
 if isempty(start)
-  start = this.event_stamps{1}(1);
+  start = this.phase.times{1}(1);
 end
 if isempty(stop)
-  stop = this.event_stamps{end}(end);
+  stop = this.phase.times{end}(end);
 end
 
 % find requested states and regions
-[s_indeces,r_indeces,opt.states,opt.regions] = this.indeces(opt.states,opt.regions,rearrange=true);
+[opt.states,opt.regions,s_indeces,r_indeces] = this.arrayInd(opt.states,opt.regions,rearrange=true);
 
 % make figure if no existing axes is specified
 if isempty(opt.ax)
@@ -104,7 +104,7 @@ state_time = cell(numel(s_indeces),1);
 for s = 1 : numel(s_indeces)
   s_time = []; s_firing = zeros(0,size(f_rate,2));
   % elements of f_rate inside state
-  [~,ind] = Restrict(time,this.state_stamps{s_indeces(s)});
+  [~,ind] = Restrict(time,this.state.times{s_indeces(s)});
   % points where state changes, to extend state interval and add NaN after
   jump_ind = [false; ind(2:end) ~= ind(1:end-1)+1];
   jump_ind_nan = jump_ind + jump_ind;
@@ -142,7 +142,7 @@ if opt.avals
   axes(opt.ax)
   for s = s_ind_aval
     for r = 1 : numel(opt.regions)
-      aval_intervals = this.avalIntervals(this.states(s),opt.regions(r)) - this.aval_window/2;
+      aval_intervals = this.avalIntervals(this.state.names(s),opt.regions(r)) - this.aval_window/2;
       valid_ind = aval_intervals(:,1) < stop & aval_intervals(:,2) > start;
       valid_ind = valid_ind | aval_intervals(:,1) < start & aval_intervals(:,2) > stop;
       aval_intervals = aval_intervals(valid_ind,:);
@@ -158,7 +158,7 @@ end
 % plot firing rates
 h = matlab.graphics.chart.primitive.Line.empty;
 for s = 1 : numel(s_indeces)
-  h(end+1,1) = plot(opt.ax,state_time{s},state_firing{s},Color=myColors(s,'IBMcb'),DisplayName=this.states(s_indeces(s)));
+  h(end+1,1) = plot(opt.ax,state_time{s},state_firing{s},Color=myColors(s,'IBMcb'),DisplayName=this.state.names(s_indeces(s)));
 end
 
 % make y labels

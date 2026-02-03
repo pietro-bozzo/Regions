@@ -1,11 +1,13 @@
 classdef regions
-% regions Handler for multi-region spiking data, to store data and compute quantities per region (e.g., firing rates, avalanches, assemblies)
-%     requires FMAToolbox, ISAC, region
+% regions Handles multi-region spiking data, recording session info, and computes quantities per region
+% (e.g., firing rates, avalanches, assemblies)
 %
 % properties:
 %
 % methods:
 %
+
+% requires FMAToolbox, ISAC, region
 
 % Copyright (C) 2025 by Pietro Bozzo
 %
@@ -17,11 +19,14 @@ properties (GetAccess = public, SetAccess = protected)
   basename        % session basename, e.g., Rat386-20180918
   session_path    % path to session folder
   rat
-  event_names
-  event_stamps
-  all_events
-  states
-  state_stamps
+  phase
+  state
+  event
+%   event_names % replaced by phase.names
+%   event_stamps % replaced by phase.times
+%   all_events % replaced by phase.all
+%   states
+%   state_stamps
   ids
   regions_array
   cluster_map % i-th row is [electrode group, cluster, channel] for unit i
@@ -42,57 +47,73 @@ end
   
   methods
     function obj = regions(session,opt)
-      % regions Construct an instance of this class
+      % regions Class constructor
       %
       % arguments:
-      % session (1,:) char
-      % results_path (1,1) string = ""
-      % phases (1,1) string = "all"    either a cell of n x 2 matrices of time stamps or names of protocol phases
-      % states (:,1) string = "all"    states to load, default aggregates  all data in a single state named "all"
-      % regions (:,1) double {mustBeInteger,mustBeNonnegative} = []    regions to load, default loads all regions of data
-      % load_spikes (1,1) {mustBeLogical} = false    if false, do not load spikes, to access just states and events
+      %     session (1,:) string
+      %     legend (1,1) string = ""
+      %     phases (:,1) string = "all"    names of recording session phases
+      %     states (:,1) string = "all"    states to load, default aggregates all data in a single state named "all"
+      %     events (:,1) string = "all"    other events to load
+      %     regions (:,1) string = []      regions to load, default loads all regions of data
+      %     load_spikes (1,1) {mustBeLogical} = false    if false, do not load spikes, to access just states and events
 
       arguments
-        session (1,:) char
-        opt.results_path (1,1) string = "" % NOT IMPLEMENTED
-        opt.events (:,1) string = "all"
+        session (1,1) string
+        opt.legend (1,1) string = ""
+        opt.phases (:,1) string = "all"
         opt.states (:,1) string = "all"
-        opt.regions (:,1) {mustBeNumeric,mustBeInteger,mustBeNonnegative} = []
+        opt.events (:,1) string = strings().empty
+        opt.regions (:,1) string = []
         opt.load_spikes (1,1) {mustBeLogical} = true
+        opt.mat (1,1) {mustBeLogical} = false
         opt.shuffle (1,1) {mustBeLogical} = false
         opt.verbose (1,1) {mustBeLogical} = true
       end
 
+      if ~isfile(session)
+        error('regions:sessionFile',"Unable to find "+session)
+      end
+
       % assign members
       [obj.session_path,obj.basename] = fileparts(session);
-      obj.rat = str2double(obj.basename(4:6));
+      obj.rat = str2double(obj.basename{1}(4:6));
 
-      % load protocol-events time stamps COULD ADD try catch AND HANDLE MISSING .cat.evt FILE AS I DID BEFORE
+      % load recording session time stamps from '<basename>.cat.evt'
+      error_flag = false;
       try
-        [obj.event_names,obj.event_stamps] = loadEvents(session);
-        if ~isscalar(opt.events) || opt.events ~= "all"
-          [~,event_indeces] = intersect(obj.event_names,opt.events,'stable');
-          unknown_events = setdiff(opt.events,obj.event_names,'stable');
-          if ~isempty(unknown_events)
-            warning('regions:MissingEvents',"Unable to find events: "+strjoin(unknown_events,', '))
+        evt = LoadEvents(fullfile(obj.session_path,obj.basename)+".cat.evt",'compact','on');
+        obj.phase.names = evt.description;
+        obj.phase.times = evt.time;
+        if ~isscalar(opt.phases) || opt.phases ~= "all"
+          [~,phase_indeces] = intersect(obj.phase.names,opt.phases,'stable');
+          unknown_phases = setdiff(opt.phases,obj.phase.names,'stable');
+          if isempty(phase_indeces)
+            error_flag = true;
+          elseif ~isempty(unknown_phases)
+            warning('regions:MissingEvents',"Unable to find events: "+strjoin(unknown_phases,', '))
           end
-          obj.event_names = obj.event_names(event_indeces);
-          obj.event_stamps = obj.event_stamps(event_indeces);
-          obj.all_events = false;
+          obj.phase.names = obj.phase.names(phase_indeces);
+          obj.phase.times = obj.phase.times(phase_indeces);
+          obj.phase.all = false;
         else
-          obj.all_events = true;
+          obj.phase.all = true;
         end
       catch
-        obj.event_names = "<missing>";
-        obj.event_stamps = {};
-        obj.all_events = true;
+        obj.phase.names = string(missing);
+        obj.phase.times = {};
+        obj.phase.all = true;
+      end
+      if error_flag
+        error('regions:MissingEvents',"Unable to find events: "+strjoin(unknown_phases,', '))
       end
       
       % load behavioral-states time stamps
       opt.states = opt.states(~ismember(opt.states,["all","other"])); % remove occurrencies of "all" and "other"
-      obj.state_stamps = cell(numel(opt.states)+2,1);
+      obj.state.names = [opt.states;"all";"other"];
+      obj.state.times = cell(numel(opt.states)+2,1);
       events_path = obj.session_path;
-      new_events_path = "";
+      new_events_path = ""; % EXTRA for Paris data, to remove
       if isfolder(fullfile(events_path,'events'))
         new_events_path = fullfile(events_path,'events');
         if isfolder(fullfile(new_events_path,'2021'))
@@ -101,39 +122,48 @@ end
       end
       for i = 1 : numel(opt.states)
         if new_events_path ~= "" && isfile(fullfile(new_events_path,obj.basename + "." + opt.states(i)))
-          obj.state_stamps{i} = readmatrix(fullfile(new_events_path,obj.basename + "." + opt.states(i)),FileType='text');
+          obj.state.times{i} = readmatrix(fullfile(new_events_path,obj.basename + "." + opt.states(i)),FileType='text');
         else
-          obj.state_stamps{i} = readmatrix(fullfile(events_path,obj.basename + "." + opt.states(i)),FileType='text');
+          obj.state.times{i} = readmatrix(fullfile(events_path,obj.basename + "." + opt.states(i)),FileType='text');
         end
       end
-      obj.states = [opt.states;"all";"other"];  % add "all" and "other" as special states
-
       % special-states stamps: "all" and "other"
-      if ~isscalar(obj.event_names) || obj.event_names ~= "<missing>"
-        obj.state_stamps{end-1} = [obj.event_stamps{1}(1),obj.event_stamps{end}(end)]; % all
-        obj.state_stamps{end} = obj.state_stamps{end-1}; % other
-        for s = obj.state_stamps(1:end-2).'
-          obj.state_stamps{end} = SubtractIntervals(obj.state_stamps{end},s{1});
+      if ~isscalar(obj.phase.names) || ~ismissing(obj.phase.names)
+        obj.state.times{end-1} = [obj.phase.times{1}(1),obj.phase.times{end}(end)]; % all
+        obj.state.times{end} = obj.state.times{end-1}; % other
+        for s = obj.state.times(1:end-2).'
+          obj.state.times{end} = SubtractIntervals(obj.state.times{end},s{1});
+        end
+      end
+
+      % load other events
+      opt.events = cellfun(@(x) strsplit(x,'/'),cellstr(opt.events),'UniformOutput',false);
+      obj.event.names = string(cellfun(@(x) x{end},opt.events,'UniformOutput',false));
+      obj.event.times = cell(numel(opt.events),1);
+      obj.event.values = cell(numel(opt.events),1);
+      for i = 1 : numel(opt.events)
+        fname = fullfile(obj.session_path,opt.events{i}{1:end-1},obj.basename + "." + opt.events{i}{end});
+        obj.event.values{i,1} = readmatrix(fname,FileType='text');
+        if ismember(obj.event.names(i),["ripples","spindles"])
+          obj.event.times{i,1} = obj.event.values{i,1}(:,[1,3]);
+        else
+          obj.event.times{i,1} = obj.event.values{i,1}(:,1:2);
         end
       end
 
       % validate and assign region ids
-      ids = unique(opt.regions);
-      if length(ids) ~= length(opt.regions)
-        warning('Requested regions contain duplicates.')
-      end
-      obj.ids = ids;
+      obj.ids = unique(opt.regions,'stable');
 
-      % create arrays to store data
+      % create array to store data
       obj.regions_array = region.empty;
 
       % load spikes
       if opt.load_spikes
-        obj = obj.loadSpikes(shuffle=opt.shuffle);
+        obj = obj.loadSpikes('legend',opt.legend,'shuffle',opt.shuffle,'mat',opt.mat);
       end
 
       if opt.load_spikes && opt.verbose
-        fprintf(1,'Built regions with\nids: '+strjoin(string(obj.ids),', ')+'\nlabels: '+strjoin(regionID2Acr(obj.ids),', ')+'\nstates: '+strjoin(obj.states([1:end-2,end]),', ')+'\n\n')
+        fprintf(1,"Built regions with\nids: "+strjoin(string(obj.ids),', ')+'\nstates: '+strjoin(obj.state.names([1:end-2,end]),', ')+'\n\n')
       end
     end
   end

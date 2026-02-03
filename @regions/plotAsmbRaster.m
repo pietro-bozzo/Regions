@@ -6,7 +6,7 @@ arguments
   start (1,1) double {mustBeNonnegative}
   stop (1,1) double {mustBeNonnegative}
   opt.states (:,1) string = "all"
-  opt.regions (:,1) double = []
+  opt.regions (:,1) = []
   opt.avals (1,1) {mustBeLogical} = false
   opt.aval_thresh (1,1) double {mustBeNonnegative} = 0
   opt.save (1,1) {mustBeLogical} = false
@@ -14,7 +14,7 @@ arguments
 end
 
 % find requested states and regions
-[s_indeces,r_indeces,opt.states,opt.regions] = this.indeces(opt.states,opt.regions);
+[opt.states,opt.regions,s_indeces,r_indeces] = this.arrayInd(opt.states,opt.regions);
 
 % make figure
 fig = figure(Name='raster',NumberTitle='off',Position=get(0,'Screensize')); hold on
@@ -29,7 +29,7 @@ for s = 1 : numel(s_indeces)
   state_activations = [];
   n_asmb_cum = 0;
   for r = r_indeces
-    activations = this.asmbActivations(this.states(s_indeces(s)),this.ids(r));
+    activations = this.asmbActivations(this.state.names(s_indeces(s)),this.ids(r));
     assemblies = this.regions_array(r).assemblies;
     if ~isempty(assemblies)
       if ~isempty(activations) && ~any(any(isnan(activations)))
@@ -63,7 +63,7 @@ for s = 1 : numel(s_indeces)
   end
   done_ticks = true;
   % plot activations
-  raster(state_activations,'color',myColors(s),'DisplayName',this.states(s_indeces(s)))
+  raster(state_activations,'color',myColors(s),'DisplayName',this.state.names(s_indeces(s)))
 end
 
 % create y labels ADAPT TO ONLY HAVE SOME REGIONS

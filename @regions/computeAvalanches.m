@@ -55,7 +55,7 @@ for i = 1 : numel(this.ids)
   end
   if event_threshold ~= threshold
     % assign task profile to task intervals
-    non_sleep_int = vertcat(this.phase_stamps{~contains(this.phases,"sleep")});
+    non_sleep_int = vertcat(this.phase.times{~contains(this.phase.names,"sleep")});
     [~,ind] = Restrict(time,non_sleep_int);
     profile(ind) = profile_task(ind);
   end

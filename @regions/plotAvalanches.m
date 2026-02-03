@@ -7,12 +7,12 @@ arguments
   stop (1,1) {mustBeNumeric,mustBeNonnegative} = 0
   step (1,1) {mustBeNumeric,mustBeNonnegative} = 0
   opt.states (:,1) string = []
-  opt.regions (:,1) {mustBeNumeric,mustBeInteger} = []
+  opt.regions (:,1) = []
   opt.scale (1,1) {mustBeNumeric,mustBeNonnegative} = 200000 % parameter to control height of each plot such that ylim = [0,scale]
 end
 
 % find requested states and regions
-[s_indeces,r_indeces,opt.states,opt.regions] = this.indeces(opt.states,opt.regions,rearrange=true);
+[opt.states,opt.regions,s_indeces,r_indeces] = this.arrayInd(opt.states,opt.regions,rearrange=true);
 
 % make figure
 tit = "Avalanches for "+this.printBasename()+', w: '+num2str(this.aval_window)+', s: '+num2str(this.aval_smooth)+', t: '+num2str(this.aval_threshold);
@@ -24,7 +24,7 @@ max_stop = stop;
 state_traces = cell(numel(s_indeces),numel(r_indeces));
 times = cell(numel(s_indeces),numel(r_indeces));
 for s = 1 : numel(s_indeces)
-  state = this.states(s_indeces(s));
+  state = this.state.names(s_indeces(s));
   for r = 1 : numel(r_indeces)
     % get avalanches
     [sizes,intervals] = this.avalSizes(state,this.ids(r_indeces(r)),nan_pad= step==0);  
@@ -57,7 +57,7 @@ end
 
 % plot traces
 for s = 1 : numel(s_indeces)
-  plot(vertcat(times{s,:}),vertcat(state_traces{s,:}),Color=myColors(s,'IBMcb'),LineWidth=1.64,DisplayName=this.states(s_indeces(s)));
+  plot(vertcat(times{s,:}),vertcat(state_traces{s,:}),Color=myColors(s,'IBMcb'),LineWidth=1.64,DisplayName=this.state.names(s_indeces(s)));
 end
 
 % make left axis labels

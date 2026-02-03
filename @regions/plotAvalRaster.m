@@ -38,7 +38,7 @@ fig = makeFigure('aval_raster',tit);
 max_stop = stop;
 for s = 1 : numel(s_indeces)
   done_legend = false;
-  state = this.states(s_indeces(s));
+  state = this.state.names(s_indeces(s));
   for r = 1 : numel(r_indeces)
     intervals = this.avalIntervals(state,this.ids(r_indeces(r)));
     % update left xlim
@@ -57,7 +57,7 @@ for s = 1 : numel(s_indeces)
     if done_legend
       legend_value = 'off';
     else
-      legend_value = this.states(s_indeces(s));
+      legend_value = this.state.names(s_indeces(s));
     end
     PlotIntervals(intervals,'color',myColors(s,'IBMcb'),'alpha',1,'ylim',[r-1,r],'legend',legend_value,'bottom','off')
     done_legend = true;

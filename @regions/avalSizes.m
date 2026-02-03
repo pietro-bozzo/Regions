@@ -3,7 +3,7 @@ function [sizes,intervals] = avalSizes(this,state,region,opt)
 %
 % arguments:
 %     state          string, behavioral state
-%     region         double, brain region
+%     region         string, brain region
 %
 % name-value arguments:
 %     restriction    (n_restrict,2) double = [], each row is a [start,stop] interval, discard avalanches falling
@@ -27,7 +27,7 @@ function [sizes,intervals] = avalSizes(this,state,region,opt)
 arguments
   this (1,1) regions
   state (1,1) string
-  region (1,1) {mustBeNumeric,mustBeInteger}
+  region (1,1) string
   opt.restriction (:,2) {mustBeNumeric} = []
   opt.nan_pad (1,1) {mustBeLogical} = false
   opt.threshold (1,1) {mustBeNumeric,mustBeNonnegative} = 0
@@ -40,7 +40,7 @@ end
 
 % find requested state and region
 try
-  [s_index,r_index] = this.indeces(state,region);
+  [~,~,s_index,r_index] = this.arrayInd(state,region);
 catch ME
   throw(ME)
 end
@@ -74,7 +74,7 @@ end
 if state ~= "all"
   ind = false(size(intervals(:,1))); % ind(i) = 1 iff interval(i) is in state
   nan_ind = [];
-  for state_interval = this.state_stamps{s_index}.'
+  for state_interval = this.state.times{s_index}.'
     new_ind = intervals(:,1) > state_interval(1) & intervals(:,2) < state_interval(2);
     if any(new_ind)
       ind = ind | new_ind;

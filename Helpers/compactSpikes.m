@@ -14,6 +14,7 @@ arguments
   opt.clean (1,1) {mustBeLogical} = false
 end
 
+units_to_add = [];
 if ~isempty(units)
   unique_units = unique(spikes(:,2));
 

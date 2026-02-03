@@ -7,7 +7,7 @@ function [fig,h] = plotSpikeRaster(this,start,stop,opt)
 %
 % name-value arguments:
 %     states      (n_states,1) string = [], behavioral states, defaults to all states
-%     regions     (n_regs,1) double = [], brain regions, defaults to all regions
+%     regions     (n_regs,1) = [], brain regions, defaults to all regions
 %     avals       logical = false, if true, plot avalanches
 %     colors      spike colors, either double, string or cell, where each row is a state and each column is a region; specify:
 %                   - a scalar string, cell, or (1,3) double to have one color for all spikes
@@ -15,6 +15,7 @@ function [fig,h] = plotSpikeRaster(this,start,stop,opt)
 %                   - a row vector to have one color per region
 %     lineProp    cell array of property-value pairs to set raster lines properties (see MATLAB Line Properties)
 %     ax          Axes = [], axes to plot on, default creates a new figure
+%     show        logical = true, whether to show newly made figure
 %
 % output:
 %     fig         figure
@@ -30,11 +31,12 @@ arguments
   start (1,1) {mustBeNumeric} = 0
   stop (1,1) {mustBeNumeric,mustBeNonnegative} = 0
   opt.states (:,1) string = []
-  opt.regions (:,1) double = []
+  opt.regions (:,1) string = []
   opt.avals (1,1) {mustBeLogical} = false
   opt.colors = []
   opt.lineProp (:,1) cell = {}
   opt.ax (:,1) matlab.graphics.axis.Axes = matlab.graphics.axis.Axes.empty
+  opt.show (1,1) {mustBeLogical} = true
   opt.asmb (:,1) double {mustBeInteger,mustBePositive} = [] % DEPRECATED
   opt.ICs (:,1) double {mustBeInteger,mustBePositive} = [] % DEPRECATED
 end
@@ -45,7 +47,7 @@ if stop ~= 0 && start >= stop
 end
 
 % find states and regions
-[s_indeces,r_indeces,opt.states,opt.regions] = this.indeces(opt.states,opt.regions,rearrange=true);
+[opt.states,opt.regions,s_indeces,r_indeces] = this.arrayInd(opt.states,opt.regions,rearrange=true);
 n_states = numel(opt.states);
 n_regions = numel(opt.regions);
 
@@ -73,7 +75,7 @@ end
 if isempty(opt.ax)
   tit = "Raster for " + this.printBasename();
   if opt.avals, tit = tit+', w: '+num2str(this.aval_window)+' s, s: '+num2str(this.aval_smooth)+', t: '+num2str(this.aval_threshold); end
-  fig = makeFigure('raster',tit);
+  fig = makeFigure('raster',tit,'show',opt.show);
   opt.ax = gca;
 else
   fig = ancestor(opt.ax,'figure');
@@ -90,29 +92,31 @@ for s = 1 : n_states
   for r = 1 : n_regions
     spikes = this.spikes(opt.states(s),opt.regions(r));
     neurons = this.regions_array(r_indeces(r)).neurons;
-    times = spikes(:,1);
-    % update left xlim
-    if stop <= 0
-      stop = -times(end) - 0.001;
-      max_stop = max([max_stop,abs(stop)]);
+    if ~isempty(spikes)
+      times = spikes(:,1);
+      % update left xlim
+      if stop <= 0
+        stop = -times(end) - 0.001;
+        max_stop = max([max_stop,abs(stop)]);
+      end
+      % keep spikes in requested time
+      spikes = spikes(times > start & times < abs(stop),:);
+      % relabel units to a contigous {1,...,N} set, preserving unit order
+      spikes = compactSpikes(spikes,neurons,clean=true);
+      spikes(:,2) = spikes(:,2) + n_units_cum;
     end
-    % keep spikes in requested time
-    spikes = spikes(times > start & times < abs(stop),:);
-    % relabel units to a contigous {1,...,N} set, preserving unit order
-    spikes = compactSpikes(spikes,neurons,clean=true);
-    spikes(:,2) = spikes(:,2) + n_units_cum;
     n_units_cum = n_units_cum + numel(neurons);
     spikes_cell{s,r}.spikes = spikes;
     spikes_cell{s,r}.color = colors{s,r};
     if r == 1 && make_legend
-      spikes_cell{s,r}.name = this.states(s_indeces(s));
+      spikes_cell{s,r}.name = this.state.names(s_indeces(s));
     else
       spikes_cell{s,r}.name = "";
     end
     % make y labels
-    if ~done_ticks
+    if ~done_ticks && n_units_cum ~= ticks(end)-0.5
       ticks = [ticks;(ticks(end)+n_units_cum+0.5)/2;n_units_cum+0.5];
-      labels = [labels;regionID2Acr(opt.regions(r));""];
+      labels = [labels;opt.regions(r);""];
     end
   end
   done_ticks = true;
@@ -128,7 +132,7 @@ if opt.avals
     height_cum = 0.5;
     for r = r_indeces
       height = this.nNeurons(opt.regions(r));
-      aval_intervals = this.avalIntervals(this.states(s),this.ids(r));
+      aval_intervals = this.avalIntervals(this.state.names(s),this.ids(r));
       % keep avalanches inside xlim
       valid_ind = aval_intervals(:,1) < max_stop & aval_intervals(:,2) > start;
       valid_ind = valid_ind | aval_intervals(:,1) < start & aval_intervals(:,2) > stop;

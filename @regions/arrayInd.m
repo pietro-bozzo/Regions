@@ -1,17 +1,17 @@
-function [state_indeces,region_indeces,found_states,found_regs] = indeces(this,states,regs,opt)
-% getIndeces Get indeces of states in state_stamps and of regions in regions_array
+function [found_states,found_regs,state_indeces,region_indeces] = arrayInd(this,states,regs,opt)
+% arrayInd Get indeces of states in state.names and of regions in regions_array
 
 arguments
   this (1,1) regions
-  states (:,1) string = [] % default gives all states region has been instantiated with
-  regs (:,1) double = [] % IMPLEMENT POSSIBILITY TO GIVE ACR?
+  states (:,1) string = strings().empty % default gives all states region has been instantiated with
+  regs (:,1) string = strings().empty
   opt.strict (1,1) {mustBeLogical} = true
   opt.rearrange (1,1) {mustBeLogical} = false
   opt.fuse (1,1) {mustBeLogical} = false % if true, return 'all' when no states resquested
 end
 
 % validate input
-unknown_states = setdiff(states,this.states,'stable');
+unknown_states = setdiff(states,this.state.names,'stable');
 if ~isempty(unknown_states)
   if opt.strict
     error('indeces:missingState',"Unrecognized states: " + strjoin(unknown_states,', '))
@@ -31,29 +31,29 @@ end
 % 1. find requested states
 if isempty(states)
   % case 1: no states requested
-  if numel(this.states) == 2
+  if numel(this.state.names) == 2
     % if 'all' is the only state, return it
-    state_indeces = find(this.states == "all");
+    state_indeces = find(this.state.names == "all");
   else
     % otherwise return all states and 'other'
-    state_indeces = find(this.states~='all').';
+    state_indeces = find(this.state.names~='all').';
   end
-  found_states = this.states(state_indeces);
+  found_states = this.state.names(state_indeces);
 else
   % case 2: identify requested states
-  [found_states,~,state_indeces] = intersect(states,this.states,'stable'); % 'stable' preserves input order
+  [found_states,~,state_indeces] = intersect(states,this.state.names,'stable'); % 'stable' preserves input order
   state_indeces = state_indeces.'; % convert to row vector for iterations
 end
 % if 'all' option is requested or if it's the only state, return it
-if opt.fuse && numel(state_indeces) == numel(this.states)-1
+if opt.fuse && numel(state_indeces) == numel(this.state.names)-1
   found_states = "all";
-  state_indeces = find(this.states=="all");
+  state_indeces = find(this.state.names=="all");
 end
 
 % move 'all' to first place DEPRECATED??
 if opt.rearrange && ismember('all',found_states)
   found_states = ["all";found_states(found_states~='all')];
-  state_indeces = [numel(this.states)-1,state_indeces(state_indeces~=numel(this.states)-1)];
+  state_indeces = [numel(this.state.names)-1,state_indeces(state_indeces~=numel(this.state.names)-1)];
 end
 
 % 2. find requested regions

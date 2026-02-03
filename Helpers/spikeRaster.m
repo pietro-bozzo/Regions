@@ -1,5 +1,5 @@
-function [raster,step] = getSpikeRaster(spikes,start,stop,opt)
-% getSpikeRaster Get raster matrix of size n_units x n_bins
+function [raster,step] = spikeRaster(spikes,start,stop,opt)
+% spikeRaster Get raster matrix of size n_units x n_bins
 %
 % arguments:
 %     spikes     (n_spikes,2) double, each row is [spike_time,unit_id]
@@ -7,13 +7,16 @@ function [raster,step] = getSpikeRaster(spikes,start,stop,opt)
 %     stop       double = 0, default is max spike time
 %
 % name-value arguments:
-%     step       double = 0.05, time bin in s, default is min inter-spike interval
+%     step       double = 0, time bin in s, default is min inter-spike interval
 %     relabel    logical = true, if true, relabel units to a {1,...,N} set, preserving unit order in raster, e.g.,
 %                  spikes = [1,5;    has units {3,5,9,10} which will be rows {1,2,3,4} in raster
 %                            2,3;
 %                            3,2;
 %                            4,9]
-%     sparse     logical = true, if true, output is a sparse matrix, otherwise it's full
+%     mode       string = 'sparse', raster computation method and output type, either:
+%                  - 'sparse', logical sparse matrix
+%                  - 'bool', full logical matrix
+%                  - 'int', full integer matrix of spike counts
 
 % Copyright (C) 2025 by Pietro Bozzo
 %
@@ -26,7 +29,7 @@ arguments
   stop (1,1) {mustBeNumeric,mustBeNonnegative} = spikes(end,1)
   opt.step (1,1) {mustBeNumeric,mustBeNonnegative} = 0
   opt.relabel (1,1) {mustBeLogical} = true
-  opt.sparse (1,1) {mustBeLogical} = true
+  opt.mode (1,1) string {mustBeMember(opt.mode,["sparse","bool","int"])} = "sparse"
 end
 
 if opt.step == 0
@@ -34,6 +37,7 @@ if opt.step == 0
   time_steps = spikes(2:end,1)-spikes(1:end-1,1);
   opt.step = min(time_steps(time_steps~=0));
 end
+step = opt.step;
 
 if opt.relabel
   [~,~,unit_label] = unique(spikes(:,2));
@@ -42,24 +46,31 @@ else
 end
 
 % keep samples in [start,stop], discretize time
-time_indeces = spikes(spikes(:,1) >= start & spikes(:,1) <= stop,1) - start;
-time_indeces = ceil(time_indeces / opt.step);
+ok_ind = spikes(:,1) >= start & spikes(:,1) <= stop;
+time_indeces = spikes(ok_ind,1) - start;
+time_indeces = ceil(time_indeces / step);
 time_indeces(time_indeces==0) = 1;
+unit_label = unit_label(ok_ind);
 
-% add dummy spike to ensure final columns of zeros in raster (for sparse mdoe)
-time_indeces = [time_indeces;ceil((stop-start)/opt.step)];
-unit_label = [unit_label;1];
+% make raster
+if opt.mode == "sparse"
 
-% create raster as sparse matrix
-if opt.sparse
+  % add dummy spike to ensure final columns of zeros in raster
+  time_indeces = [time_indeces;ceil((stop-start)/step)];
+  unit_label = [unit_label;1];
   raster = sparse(unit_label,time_indeces,true);
-else
+  % remove dummy spike
+  raster(1,end) = false;
+
+elseif opt.mode == "bool"
+
   raster_size = [max(unit_label),time_indeces(end)];
   raster = false(raster_size);
   raster(sub2ind(raster_size,unit_label,time_indeces)) = true;
-end
-% remove dummy spike
-raster(1,end) = false;
 
-% return bin size
-step = opt.step;
+else
+  
+  raster_size = [max(unit_label),time_indeces(end)];
+  raster = accumarray([unit_label,time_indeces],1,raster_size);
+  
+end

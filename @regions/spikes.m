@@ -3,7 +3,7 @@ function spikes = spikes(this,state,regs,opt)
 %
 % arguments:
 %     state       string = 'all', behavioral state
-%     regs        (n_regs,1) double = [], brain regions, default is all regions
+%     regs        (n_regs,1) = [], brain regions, default is all regions
 %
 % name-value arguments:
 %     restrict    (n_intervals,2) double = [], each row is a [start,stop] interval, discard spikes falling
@@ -20,7 +20,7 @@ function spikes = spikes(this,state,regs,opt)
 arguments
   this (1,1) regions
   state (1,1) string = "all"
-  regs (:,1) double = [] % IMPLEMENT POSSIBILITY TO GIVE ACR?
+  regs (:,1) = []
   opt.restrict (:,2) double = []
 end
 
@@ -30,7 +30,7 @@ end
 
 % find requested state and regions
 try
-  [s_index,r_indeces] = this.indeces(state,regs);
+  [~,~,s_index,r_indeces] = this.arrayInd(state,regs);
 catch ME
   throw(ME)
 end
@@ -46,10 +46,10 @@ spikes = sortrows(spikes);
 
 % restrict
 if ~isempty(opt.restrict)
-  spikes = Restrict(spikes,opt.restrict,'shift','off');
+  spikes = Restrict(spikes,opt.restrict,'shift','off','verbose','off');
 end
 
 % filter by state
 if state ~= "all"
-  spikes = Restrict(spikes,this.state_stamps{s_index},'shift','off');
+  spikes = Restrict(spikes,this.state.times{s_index},'shift','off','verbose','off');
 end

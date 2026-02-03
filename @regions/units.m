@@ -3,7 +3,7 @@ function [list,regs] = units(this,regs)
 
 arguments
   this (1,1) regions
-  regs (:,1) double = []
+  regs (:,1) = []
 end
 
 if ~this.hasSpikes()
@@ -12,7 +12,7 @@ end
 
 % find regions
 try
-  [~,r_indeces,~,regs] = this.indeces([],regs);
+  [~,regs,~,r_indeces] = this.arrayInd([],regs);
 catch ME
   throw(ME)
 end

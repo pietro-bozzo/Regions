@@ -4,7 +4,7 @@ function [profiles,time] = avalProfiles(this,state,regs)
 arguments
   this (1,1) regions
   state (1,1) string % NOT IMPLEMENTED
-  regs (:,1) double {mustBeInteger} = []
+  regs (:,1) = []
 end
 
 if ~this.hasAvalanches()
@@ -12,7 +12,7 @@ if ~this.hasAvalanches()
 end
 
 % find requested state and regions
-[s_index,r_indeces] = this.indeces(state,regs);
+[~,~,s_index,r_indeces] = this.arrayInd(state,regs);
 
 % get profiles
 profiles = [];

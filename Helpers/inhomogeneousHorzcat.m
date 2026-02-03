@@ -1,6 +1,6 @@
 function c = inhomogeneousHorzcat(a,b,opt)
-% inhomogeneousHorzcat Horizontally concatenate two arrays, if their first dimensions differ, either truncate
-% the longest one or pad the shortest one with a chosen value
+% inhomogeneousHorzcat Horizontally concatenate two arrays and, if their first dimensions differ, either truncate
+% the longest one or pad the shortest one
 %
 % arguments:
 %     a      (a1,a2)

@@ -27,7 +27,7 @@ classdef region
       % region Construct an instance of this class
       %   Detailed explanation goes here
       arguments
-        id (1,1) {mustBeNumeric,mustBeInteger} = -1 % uninitialized value
+        id (1,1) = -1 % uninitialized value
         neurons (:,1) {mustBeNumeric,mustBeInteger,mustBePositive} = []
         spikes (:,2) {mustBeNumeric} = []
       end

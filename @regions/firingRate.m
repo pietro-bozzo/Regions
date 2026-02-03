@@ -3,7 +3,7 @@ function [FR,time] = firingRate(this,state,regs,opt)
 %
 % arguments:
 %     state        string = 'all', behavioral state
-%     regs         (n_regs,1) double = [], brain regions, default is all regions
+%     regs         (n_regs,1) string = [], brain regions, default is all regions
 %
 % name-value arguments:
 %     window       double = 0.05, time bin for firing rate computation
@@ -27,7 +27,7 @@ function [FR,time] = firingRate(this,state,regs,opt)
 arguments
   this (1,1) regions
   state (1,1) string = 'all'
-  regs (:,1) {mustBeNumeric,mustBeInteger} = []
+  regs (:,1) string = []
   opt.window (1,1) {mustBeNumeric,mustBePositive} = 0.05
   opt.step (1,1) {mustBeNumeric,mustBeInteger,mustBePositive} = 1
   opt.smooth (1,1) {mustBeNumeric,mustBePositive} = 1
@@ -36,7 +36,7 @@ arguments
 end
 
 if ~this.hasSpikes()
-  error('firingRate:missingSpikes','Spikes have not been loaded.')
+  error('firingRate:missingSpikes','Spikes have not been loaded')
 end
 
 % select method
@@ -48,14 +48,14 @@ end
 
 % find state and regions
 try
-  [s_index,~,state,regs] = this.indeces(state,regs);
+  [state,regs,s_index] = this.arrayInd(state,regs);
 catch ME
   throw(ME)
 end
 
 % firing rate
 % restrict time in loaded events
-event_stamps = vertcat(this.event_stamps{:});
+event_stamps = vertcat(this.phase.times{:});
 event_stamps = ConsolidateIntervals(event_stamps,'epsilon',0.0001);
 FR = [];
 time = [];
@@ -64,10 +64,8 @@ for interval = event_stamps.'
   freq = []; % store temporarily region firing rate and its time for this event
   for reg = regs.'
     spikes = this.spikes('all',reg);
-    if ~isempty(spikes)
-      freq = method(spikes,[interval(1),interval(2)],opt.window,opt.step,opt.smooth);
-      event_FR = inhomogeneousHorzcat(event_FR,freq(:,2));
-    end
+    freq = method(spikes,[interval(1),interval(2)],opt.window,opt.step,opt.smooth);
+    event_FR = inhomogeneousHorzcat(event_FR,freq(:,2));
   end
   FR = [FR;event_FR];
   time = [time;freq(1:size(event_FR,1),1);];
@@ -77,7 +75,7 @@ end
 if state ~= "all"
   ind = false(size(time)); % ind(i) = 1 iff time(i) is in state
   nan_ind = [];
-  for interval = this.state_stamps{s_index}.'
+  for interval = this.state.times{s_index}.'
     new_ind = time > interval(1) & time < interval(2);
     if any(new_ind)
       ind = ind | new_ind;

@@ -10,8 +10,9 @@ function fig = plotUnitFiring(this,start,stop,window,step,opt)
 %
 % name-value arguments:
 %     states      (n_states,1) string = [], behavioral states, defaults to all states
-%     regions     (n_regs,1) double = [], brain regions, defaults  all regions
+%     regions     (n_regs,1) = [], brain regions, defaults  all regions
 %     smooth      double = 1, gaussian kernel std in number of samples, default is no smoothing
+%     zscore      logical = false, if true, zscore each neuron's activity
 %     clim        (1,2) double = [NaN,NaN]
 %     ax          Axes = [], axes to plot on, default creates a new figure
 %
@@ -31,8 +32,9 @@ arguments
   window (1,1) {mustBeNumeric,mustBePositive} = 0.05
   step (1,1) {mustBeNumeric,mustBeInteger,mustBePositive} = 1
   opt.states (:,1) string = []
-  opt.regions (:,1) double = []
+  opt.regions (:,1) = []
   opt.smooth (1,1) {mustBeNumeric,mustBePositive} = 1
+  opt.zscore (1,1) {mustBeLogical} = false
   opt.clim (1,2) double = [NaN,NaN]
   opt.ax matlab.graphics.axis.Axes {mustBeScalarOrEmpty} = matlab.graphics.axis.Axes.empty
 end
@@ -51,12 +53,12 @@ if isempty(stop)
 end
 
 % find states and regions
-[~,~,opt.states,opt.regions] = this.indeces(opt.states,opt.regions,rearrange=true);
+[opt.states,opt.regions] = this.arrayInd(opt.states,opt.regions,rearrange=true);
 n_regions = numel(opt.regions);
 
 % make figure if no existing axes is specified
 if isempty(opt.ax)
-  tit = "Unit firing, " + this.printBasename() + ', w: ' + num2str(window) + ' s, s: ' + num2str(step);
+  tit = "Unit firing, " + this.printBasename() + ", w: " + num2str(window) + " s, st: " + num2str(step) + ", sm: " + num2str(opt.smooth);
   fig = makeFigure('unit_fr',tit);
   opt.ax = gca;
 end
@@ -78,7 +80,12 @@ state_intervals = state_intervals(any(state_intervals>start,2) & any(state_inter
 firing_rates = firing_rates(:,ind);
 
 % plot firing rates
-PlotColorMap(firing_rates,'cutoffs',opt.clim,'bar','firing rate (Hz)','x',time,'piecewise','off')
+clabel = 'firing rate (Hz)';
+if opt.zscore
+  firing_rates = zscore(firing_rates,0,2);
+  clabel = 'firing rate (z-score, a.u.)';
+end
+PlotColorMap(firing_rates,'cutoffs',opt.clim,'bar',clabel,'x',time,'piecewise','off')
 
 % make y labels
 ticks = cumsum([0.5;this.nNeurons(opt.regions)]);
@@ -91,6 +98,6 @@ labels = ["";labels(:)];
 if ticks(end) == 0.5 % to prevent error in YLim = [0.5,ticks(end)] when no regions have spikes
   ticks(end) = 1;
 end
-adjustAxes(opt.ax,'XLim',[0,time(end)],'YLim',[0.5,ticks(end)],'YTick',ticks,'YTickLabel',labels)
+adjustAxes(opt.ax,'XLim',[time(1),time(end)],'YLim',[0.5,ticks(end)],'YTick',ticks,'YTickLabel',labels)
 xlabel(opt.ax,'time (s)');
 ylabel(opt.ax,'units');

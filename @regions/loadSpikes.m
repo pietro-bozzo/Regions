@@ -2,12 +2,14 @@ function this = loadSpikes(this,opt)
 % loadSpikes Load session spikes
 %
 % name-value arguments:
-%     load = true        logical, if true, load from spikes.mat, bypassing FMAT utilities
-%     test = false       logical, if true, load synthetic test spikes
-%     shuffle = false    logical, if true, shuffle spikes
+%     load       logical = true, if true, load from spikes.mat, bypassing FMAT utilities
+%     mat        logical = false, if true, load spikes from /<basename>/Regions/Data/spikes.mat
+%     test       logical = false, if true, load synthetic test spikes
+%     legend     string = "", file containing legend between unit ids and anatomical location, default is electrAnatPos.txt from folder Regions/Data
+%     shuffle    logical = false, if true, shuffle spikes
 %
 % output:
-%     this               modified regions object
+%     this       modified regions object
 
 % Copyright (C) 2025 by Pietro Bozzo
 %
@@ -17,13 +19,25 @@ function this = loadSpikes(this,opt)
 arguments
   this (1,1) regions
   opt.load (1,1) {mustBeLogical} = true
+  opt.mat (1,1) {mustBeLogical} = false
   opt.test (1,1) {mustBeLogical} = false
+  opt.legend (1,1) string = ""
   opt.shuffle (1,1) {mustBeLogical} = false
+end
+
+% default value
+if opt.legend == ""
+  %opt.legend = fullfile(this.session_path,this.basename+".chanat"); % NOT IMPLEMENTED FOR NOW
+  %if ~isfile(opt.legend)
+    opt.legend = dataPath()+"/nonlateral.anat"; % default to electrAnatPos.txt file in Regions/Data  % WAS '/electrAnatPos.txt'
+  %end
 end
 
 % load spikes from disk
 if opt.test
   spikes = readmatrix(fullfile(this.session_path,this.basename,+".test"),FileType="text");
+elseif opt.mat
+  load(fullfile(this.session_path,'Regions','Data','spikes.mat'),'spikes');
 else
   if opt.load
     try
@@ -69,32 +83,27 @@ end
 % end
 
 % restrict spikes in required protocol events
-if ~this.all_events
-  any_event_stamps = sortrows(vertcat(this.event_stamps{:}));
+if ~this.phase.all
+  any_event_stamps = sortrows(vertcat(this.phase.times{:}));
   spikes = Restrict(spikes,any_event_stamps,'shift','off');
 end
 
 % shuffle spikes preserving inter-spike interval for each unit
 if opt.shuffle
-  shuffled_spikes = cell(size(this.event_stamps));
-  for i = 1 : numel(this.event_stamps)
-    event_spikes = Restrict(spikes,this.event_stamps{i});
-    shuffled_spikes{i} = shuffleSpikes(event_spikes,this.event_stamps{i}(1));
+  shuffled_spikes = cell(size(this.phase.times));
+  for i = 1 : numel(this.phase.times)
+    event_spikes = Restrict(spikes,this.phase.times{i});
+    shuffled_spikes{i} = shuffleSpikes(event_spikes,this.phase.times{i}(1));
   end
   spikes = vertcat(shuffled_spikes{:});
 end
-  
-% assign unique labels to units
-legend_path = fullfile(this.session_path,this.basename+".chanat");
-if ~isfile(legend_path)
-  legend_path = ""; % default to electrAnatPos.txt file in Regions/Data
-end
+
 % relabel spikes as [time,unique_unit_id]
-[labeled_spikes,region_ids,this.cluster_map,regs] = relabelUnits(fullfile(this.session_path,this.basename+".xml"),spikes,this.rat,regions=this.ids,anat_file=legend_path);
+[labeled_spikes,region_ids,this.cluster_map,regs] = relabelUnits(fullfile(this.session_path,this.basename+".xml"),spikes,this.rat,opt.legend,regions=this.ids);
 if isempty(this.ids) % default when user doesn't request specific regions
   this.ids = regs;
 else
-  found_ids = intersect(this.ids,regs); % requested regions found in data
+  found_ids = intersect(this.ids,regs,'stable'); % requested regions found in data
   if ~isempty(setdiff(this.ids,found_ids))
     warning("Requested regions "+strjoin(string(setdiff(this.ids,found_ids)),',')+" not found")
   end
@@ -106,12 +115,12 @@ if isempty(labeled_spikes)
 end
 
 % use spikes to deduce session duration if loadEvents failed
-if isscalar(this.event_names) && this.event_names == "<missing>"
-  this.event_stamps{1} = [spikes(1,1),spikes(end,1)];
-  this.state_stamps{end-1} = this.event_stamps{1}; % all
-  this.state_stamps{end} = this.state_stamps{end-1}; % other
-  for s = this.state_stamps(1:end-2).'
-    obj.state_stamps{end} = SubtractIntervals(obj.state_stamps{end},s{1});
+if isscalar(this.phase.names) && ismissing(this.phase.names)
+  this.phase.times{1} = [spikes(1,1),spikes(end,1)];
+  this.state.times{end-1} = this.phase.times{1}; % all
+  this.state.times{end} = this.state.times{end-1}; % other
+  for s = this.state.times(1:end-2).'
+    this.state.times{end} = SubtractIntervals(this.state.times{end},s{1});
   end
 end
 
