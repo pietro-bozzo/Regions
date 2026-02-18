@@ -4,7 +4,7 @@ function [profiles,time] = avalProfiles(this,state,regs)
 arguments
   this (1,1) regions
   state (1,1) string % NOT IMPLEMENTED
-  regs (:,1) = []
+  regs (:,1) string = []
 end
 
 if ~this.hasAvalanches()

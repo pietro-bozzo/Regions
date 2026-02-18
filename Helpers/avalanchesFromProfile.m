@@ -1,4 +1,4 @@
-function [sizes,intervals,timeDependentSize] = avalanchesFromProfile(profile,time_step)
+function [sizes,intervals,size_t] = avalanchesFromProfile(profile,time_step)
 % avalanchesFromProfile Compute avalanches sizes and [start,end] intervals from population activity
 %
 % arguments:
@@ -8,6 +8,7 @@ function [sizes,intervals,timeDependentSize] = avalanchesFromProfile(profile,tim
 % output:
 %     sizes        (n_avals,1) double, avalanche sizes
 %     intervals    (n_avals,2) double, each row is an avalanche's [start,end] interval
+%     size_t       (:,1) double, avalanche size over time, each 0 represents the end of an avalanche
 
 % Copyright (C) 2025 by Pietro Bozzo
 %
@@ -20,14 +21,14 @@ arguments
 end
 
 if isempty(profile)
-  [sizes,timeDependentSize] = deal(NaN);
+  [sizes,size_t] = deal(NaN);
   intervals = [NaN,NaN];
 else
   ind = [true;profile(2:end)~=0|profile(1:end-1)~=0]; % ind(i) = 0 if i is repeated zero
   % compute sizes
   clean = profile(ind); % remove repeated zeros
   sizes = accumarray(cumsum(clean==0)+(profile(1)~=0),clean);
-  timeDependentSize = clean;
+  size_t = clean;
   if sizes(end) == 0 % remove last zero
     sizes = sizes(1:end-1);
   end

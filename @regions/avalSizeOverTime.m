@@ -1,0 +1,28 @@
+function size_t = avalSizeOverTime(this,state,regs)
+% avalProfiles Get avalanche size over time
+
+arguments
+  this (1,1) regions
+  state (1,1) string % NOT IMPLEMENTED
+  regs (1,1) string = []
+end
+
+if ~this.hasAvalanches()
+  error('avalProfiles:MissingAvalanches','Avalanches have not been computed')
+end
+
+% find requested state and regions
+[~,~,s_index,r_index] = this.arrayInd(state,regs);
+
+% get profiles
+size_t = this.regions_array(r_index).aval_size_t;
+
+% filter by state NOT IMPLEMENTED
+%if state ~= "all"
+%  ind = false(size(intervals(:,1))); % ind(i) = 1 iff interval(i) is in state
+%  for state_interval = this.state_stamps{s_index}.'
+%    ind = ind | intervals(:,1) > state_interval(1) & intervals(:,2) < state_interval(2);
+%  end
+%  % keep only avalanche intervals in state
+%  intervals = intervals(ind,:);
+%end

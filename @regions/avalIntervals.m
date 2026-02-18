@@ -23,7 +23,7 @@ function intervals = avalIntervals(this,state,region,opt)
 arguments
   this (1,1) regions
   state (1,1) string
-  region (1,1)
+  region (1,1) string
   opt.restriction (:,2) {mustBeNumeric} = []
   opt.nan_pad (1,1) {mustBeLogical} = false
   opt.threshold (1,1) {mustBeNumeric,mustBeNonnegative} = 0

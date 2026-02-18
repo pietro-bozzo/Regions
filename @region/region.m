@@ -11,8 +11,8 @@ classdef region
     % avalanches
     aval_sizes
     aval_intervals
-    aval_profile
-    aval_timeDependendentSize % TO REMOVE
+    aval_profile % DEPRECATED ?
+    aval_size_t
     % assemblies
     assemblies
     asmb_weights

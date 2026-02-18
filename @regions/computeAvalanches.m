@@ -61,10 +61,10 @@ for i = 1 : numel(this.ids)
   end
 
   % get avalanches
-  [sizes,intervals] = avalanchesFromProfile(profile,time(2)-time(1));
+  [sizes,intervals,size_t] = avalanchesFromProfile(profile,time(2)-time(1));
   intervals = intervals + time(1); % avalanchesFromProfile assumes time starts at 0 s, add initial offset
   % save results in region object
-  this.regions_array(i) = this.regions_array(i).setAvalanches(sizes,intervals,profile);
+  this.regions_array(i) = this.regions_array(i).setAvalanches(sizes,intervals,profile,size_t);
 end
 
 % store analysis parameters
