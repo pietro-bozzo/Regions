@@ -78,7 +78,7 @@ end
       error_flag = false;
       try
         evt = LoadEvents(fullfile(obj.session_path,obj.basename)+".cat.evt",'compact','on');
-        obj.phase.names = evt.description;
+        obj.phase.names = string(evt.description);
         obj.phase.times = evt.time;
         if ~isscalar(opt.phases) || opt.phases ~= "all"
           [~,phase_indeces] = intersect(obj.phase.names,opt.phases,'stable');

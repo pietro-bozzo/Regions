@@ -87,6 +87,9 @@ else
 end
 % assign each spike to a region
 [~,legend_ind] = ismember(egroup_cluster_id,egroup_cluster_legend);
+if ~all(legend_ind)
+  error('relabelunits:missingElectrode',"Some electrode groups where not found in "+anat_file)
+end
 labels = legend_label(legend_ind);
 % divide spikes per region and sort according to 'regs'
 sort_ind = legend_order(legend_ind);
