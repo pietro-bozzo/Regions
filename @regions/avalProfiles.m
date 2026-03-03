@@ -13,6 +13,7 @@ end
 
 % find requested state and regions
 [~,~,s_index,r_indeces] = this.arrayInd(state,regs);
+%intervals = this.regions_array(r_index).aval_intervals;
 
 % get profiles
 profiles = [];
@@ -21,9 +22,7 @@ for r = r_indeces
 end
 
 % if requested, output time for profiles
-if nargout > 1
-  time = (this.aval_t0 : this.aval_window : this.aval_t0 + this.aval_window * (size(profiles,1)-1)).';
-end
+time = (this.aval_t0 : this.aval_window : this.aval_t0 + this.aval_window * (size(profiles,1)-1)).';
 
 % filter by state NOT IMPLEMENTED
 %if state ~= "all"
@@ -34,3 +33,14 @@ end
 %  % keep only avalanche intervals in state
 %  intervals = intervals(ind,:);
 %end
+
+
+% filter by state
+if state ~= "all"
+  ind = false(size(time(:,1))); % ind(i) = 1 iff interval(i) is in state
+  for state_interval = this.state.times{s_index}.'
+    ind = ind | time > state_interval(1) & time < state_interval(2);
+  end
+  time = time(ind);
+  profiles = profiles(ind);
+end
