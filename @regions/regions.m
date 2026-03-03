@@ -66,13 +66,11 @@ end
         opt.verbose (1,1) {mustBeLogical} = true
       end
 
-      if ~isfile(session)
-        error('regions:sessionFile',"Unable to find "+session)
-      end
-
-      % assign members
       [obj.session_path,obj.basename] = fileparts(session);
       obj.rat = str2double(obj.basename{1}(4:6));
+      if ~isfolder(obj.session_path)
+        error('regions:sessionFolder',"Unable to find "+obj.session_path)
+      end
 
       % load recording session time stamps from '<basename>.cat.evt'
       error_flag = false;

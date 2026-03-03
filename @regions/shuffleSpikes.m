@@ -21,9 +21,10 @@ for i = 1 : numel(this.ids)
   % region spikes
   spikes = this.regions_array(i).spikes;
   shuffled_spikes = {};
-  for j = 1 : numel(this.event_stamps)
+  event_intervals = this.eventIntervals();
+  for interval = event_intervals.'
     % spikes in an event
-    event_spikes = Restrict(spikes,this.event_stamps{j});
+    event_spikes = Restrict(spikes,interval.');
     if gap ~= 0
       % separate spikes in blocks which are farther than gap
       isi = diff(event_spikes(:,1));
@@ -33,7 +34,7 @@ for i = 1 : numel(this.ids)
         shuffled_spikes{end+1} = shuffleSpikes(event_spikes(ind(1):ind(2),:),event_spikes(ind(1),1));
       end
     else
-      shuffled_spikes{end+1} = shuffleSpikes(event_spikes,this.event_stamps{j}(1));
+      shuffled_spikes{end+1} = shuffleSpikes(event_spikes,interval(1));
     end
   end
   this.regions_array(i) = this.regions_array(i).setSpikes(vertcat(shuffled_spikes{:}));

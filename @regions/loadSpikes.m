@@ -37,7 +37,8 @@ end
 if opt.test
   spikes = readmatrix(fullfile(this.session_path,this.basename,+".test"),FileType="text");
 elseif opt.mat
-  load(fullfile(this.session_path,'Regions','Data','spikes.mat'),'spikes');
+  spikes = load(fullfile(this.session_path,'Regions','Data','spikes.mat'),'spikes');
+  spikes = spikes.spikes;
 else
   if opt.load
     try
@@ -47,9 +48,15 @@ else
     end
   end
   if ~opt.load
+    % load via FMAT
     SetCurrentSession(fullfile(this.session_path,this.basename+".xml"))
     spikes = GetSpikeTimes('output','full');
     spikes = spikes(~ismember(spikes(:,3),[0,1]),:); % remove samples from channels 0 and 1 (artifacts and MUA)
+    % save spikes.mat
+    if ~isfolder(fullfile(this.session_path,'Regions','Data'))
+      mkdir(fullfile(this.session_path,'Regions','Data'))
+    end
+    save(fullfile(this.session_path,'Regions','Data','spikes.mat'),'spikes')
   end
 end
 
