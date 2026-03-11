@@ -65,24 +65,35 @@ else
   % 1. union of all events{i}
   int = cell(numel(events),1);
   for i = 1 : numel(events)
+
     if isempty(events{i})
       % default value
       int{i} = vertcat(this.phase.times{:});
     else
+
+      found = false;
       % check recording session events
       ind = isMatch(this.phase.names,events{i},opt);
       int{i} = vertcat(this.phase.times{ind});
+      found = found || any(ind);
+
       % check states
       ind = isMatch(this.state.names,events{i},opt);
       int{i} = [int{i};vertcat(this.state.times{ind})];
+      found = found || any(ind);
+
       % check other events
       ind = isMatch(this.event.names,events{i},opt);
       int{i} = [int{i};vertcat(this.event.times{ind})];
+      found = found || any(ind);
+
+      if ~found
+        error('eventIntervals:unknownEvent',"None of the following was found: "+strjoin(events{i},', '))
+      end
+
     end
     int{i} = ConsolidateIntervals(sortrows(int{i}));
-    if isempty(int{i})
-      error('eventIntervals:unknownEvent',"None of the following was found: "+strjoin(events{i},', '))
-    end
+    
   end
 
   % 2. intersection between intervals{:}
