@@ -49,7 +49,10 @@ end
       %     events          (:,1) string = "all", other events to load
       %     regions         (:,1) string = [], regions to load, default loads all recorded regions
       %     load_spikes     logical = true, if false, do not load spikes, to access just states and events
-      %     mat             logical = false, load spikes from /<basename>/Regions/Data/spikes.mat
+      %     fast            logical = true, try bypassing FMAT's SetCurrentSession() using (in this order):
+      %                     - CellExplorer's .cell_info-.mat file
+      %                     - Regions' file from <basename>/Regions/Data/spikes.mat
+      %     mat             logical = true, save spikes to <basename>/Regions/Data/spikes.mat when loading via FMAT
       %     shuffle         logical = false, shuffle spikes inside each recording session phase
       %     verbose         logical = true, log progress to console
 
@@ -61,7 +64,8 @@ end
         opt.events (:,1) string = strings().empty
         opt.regions (:,1) string = []
         opt.load_spikes (1,1) {mustBeLogical} = true
-        opt.mat (1,1) {mustBeLogical} = false
+        opt.fast (1,1) {mustBeLogical} = true
+        opt.mat (1,1) {mustBeLogical} = true
         opt.shuffle (1,1) {mustBeLogical} = false
         opt.verbose (1,1) {mustBeLogical} = true
       end
@@ -152,7 +156,7 @@ end
 
       % load spikes
       if opt.load_spikes
-        obj = obj.loadSpikes('legend',opt.legend,'shuffle',opt.shuffle,'mat',opt.mat);
+        obj = obj.loadSpikes('load',opt.fast,'save',opt.mat,'legend',opt.legend,'shuffle',opt.shuffle);
       end
 
       if opt.load_spikes && opt.verbose

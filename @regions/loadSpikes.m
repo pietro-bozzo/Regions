@@ -2,8 +2,10 @@ function this = loadSpikes(this,opt)
 % loadSpikes Load session spikes
 %
 % name-value arguments:
-%     load       logical = true, if true, load from spikes.mat, bypassing FMAT utilities
-%     mat        logical = false, if true, load spikes from /<basename>/Regions/Data/spikes.mat
+%     load       logical = true, if true, try bypassing FMAT's SetCurrentSession() using (in this order):
+%                - CellExplorer's .cell_info-.mat file
+%                - Regions' file from <basename>/Regions/Data/spikes.mat
+%     save       logical = true, if true, save spikes to <basename>/Regions/Data/spikes.mat when loading via FMAT
 %     test       logical = false, if true, load synthetic test spikes
 %     legend     string = "", file containing legend between unit ids and anatomical location, default is nonlateral.anatomy from folder Regions/Data
 %     shuffle    logical = false, if true, shuffle spikes
@@ -19,7 +21,7 @@ function this = loadSpikes(this,opt)
 arguments
   this (1,1) regions
   opt.load (1,1) {mustBeLogical} = true
-  opt.mat (1,1) {mustBeLogical} = false
+  opt.save (1,1) {mustBeLogical} = true
   opt.test (1,1) {mustBeLogical} = false
   opt.legend (1,1) string = ""
   opt.shuffle (1,1) {mustBeLogical} = false
@@ -33,31 +35,46 @@ if opt.legend == ""
   %end
 end
 
-% load spikes from disk
+% load spikes
 if opt.test
   spikes = readmatrix(fullfile(this.session_path,this.basename,+".test"),FileType="text");
-elseif opt.mat
-  spikes = load(fullfile(this.session_path,'Regions','Data','spikes.mat'),'spikes');
-  spikes = spikes.spikes;
 else
+
+  % load via CellExplorer
+  load_mat = opt.load;
   if opt.load
     try
       spikes = GetSpikeTimes('session',fullfile(this.session_path,this.basename+".xml"),'output','full');
+      load_mat = false;
     catch
       opt.load = false;
     end
   end
-  if ~opt.load
-    % load via FMAT
+
+  % load via Regions
+  if load_mat
+    try
+      spikes = load(fullfile(this.session_path,'Regions','Data','spikes.mat'),'spikes');
+      spikes = spikes.spikes;
+    catch
+      load_mat = false
+    end
+  end
+
+  % load via FMAT
+  if ~opt.load && ~load_mat
     SetCurrentSession(fullfile(this.session_path,this.basename+".xml"))
     spikes = GetSpikeTimes('output','full');
     spikes = spikes(~ismember(spikes(:,3),[0,1]),:); % remove samples from channels 0 and 1 (artifacts and MUA)
     % save spikes.mat
-    if ~isfolder(fullfile(this.session_path,'Regions','Data'))
-      mkdir(fullfile(this.session_path,'Regions','Data'))
+    if opt.save
+      if ~isfolder(fullfile(this.session_path,'Regions','Data'))
+        mkdir(fullfile(this.session_path,'Regions','Data'))
+      end
+      save(fullfile(this.session_path,'Regions','Data','spikes.mat'),'spikes')
     end
-    save(fullfile(this.session_path,'Regions','Data','spikes.mat'),'spikes')
   end
+
 end
 
 % restrict spikes in required protocol events
