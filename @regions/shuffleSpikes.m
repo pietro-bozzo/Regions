@@ -24,8 +24,8 @@ for i = 1 : numel(this.ids)
   event_intervals = this.eventIntervals();
   for interval = event_intervals.'
     % spikes in an event
-    event_spikes = Restrict(spikes,interval.');
-    if gap ~= 0
+    event_spikes = Restrict(spikes,interval.','verbose','off');
+    if ~isempty(event_spikes) && gap ~= 0
       % separate spikes in blocks which are farther than gap
       isi = diff(event_spikes(:,1));
       int_ind = find(isi > gap);
