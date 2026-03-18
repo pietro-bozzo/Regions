@@ -57,7 +57,7 @@ else
       spikes = load(fullfile(this.session_path,'Regions','Data','spikes.mat'),'spikes');
       spikes = spikes.spikes;
     catch
-      load_mat = false
+      load_mat = false;
     end
   end
 

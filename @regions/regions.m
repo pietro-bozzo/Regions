@@ -50,7 +50,7 @@ end
       %     regions         (:,1) string = [], regions to load, default loads all recorded regions
       %     load_spikes     logical = true, if false, do not load spikes, to access just states and events
       %     fast            logical = true, try bypassing FMAT's SetCurrentSession() using (in this order):
-      %                     - CellExplorer's .cell_info-.mat file
+      %                     - CellExplorer's .cell_info.mat file
       %                     - Regions' file from <basename>/Regions/Data/spikes.mat
       %     mat             logical = true, save spikes to <basename>/Regions/Data/spikes.mat when loading via FMAT
       %     shuffle         logical = false, shuffle spikes inside each recording session phase
