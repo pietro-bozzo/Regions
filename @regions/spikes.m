@@ -20,7 +20,7 @@ function spikes = spikes(this,state,regs,opt)
 arguments
   this (1,1) regions
   state (1,1) string = "all"
-  regs (:,1) = []
+  regs (:,1) string = []
   opt.restrict (:,2) double = []
 end
 
