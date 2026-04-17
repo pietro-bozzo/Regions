@@ -57,9 +57,10 @@ for interval = event_stamps.'
     f = Frequency(spikes(spikes(:,2)==neurons(n),1),'limits',[interval(1),interval(2)],'binSize',opt.window,'step',opt.step,'smooth',opt.smooth/5);
     FR(:,n) = f(:,2);
   end
-  %is_ok = ~all(isnan(FR),2);
   firing_rates = [firing_rates;FR];
-  time = [time;f(:,1)];
+  if ~isempty(FR)
+    time = [time;f(:,1)];
+  end
 end
 
 % filter by state
