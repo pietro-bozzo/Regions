@@ -9,6 +9,7 @@ function intervals = eventIntervals(this,events,opt)
 %     regexp       logical = false, if true, interpret strings as regular expressions to match event names (see MATLAB regexp)
 %     hash         logical = true, if true and if regexp is true, event names are split after last '#', which must be
 %                  followed by digits in [1,9] indicating which matching events to consider (see examples)
+%     duration     double = 0, elapsed time to cut intervals at, default is none
 %
 % output:
 %     intervals    (m,2) double, event intervals, each row is [start,stop];
@@ -50,6 +51,7 @@ end
 arguments (Input)
   opt.regexp (1,1) {mustBeLogical} = false
   opt.hash (1,1) {mustBeLogical} = true
+  opt.duration (1,1) {mustBeNumeric,mustBeNonnegative} = 0
 end
 arguments (Output)
   intervals (:,2)
@@ -106,6 +108,16 @@ else
     end
   end
   
+end
+
+% restrict total duration
+if opt.duration ~= 0
+  cum_time = cumsum(diff(intervals,1,2));
+  ind = find(cumsum(diff(intervals,1,2))>opt.duration,1);
+  if ~isempty(ind)
+    intervals = intervals(1:ind,:);
+    intervals(end) = intervals(end) - cum_time(ind) + opt.duration;
+  end
 end
 
 end
