@@ -3,7 +3,7 @@ function [list,regs] = units(this,regs)
 
 arguments
   this (1,1) regions
-  regs (:,1) = []
+  regs (:,1) string = []
 end
 
 if ~this.hasSpikes()
