@@ -7,7 +7,7 @@ arguments
 end
 
 if ~this.hasSpikes()
-  error('nNeurons:MissingSpikes','Spikes have not been loaded')
+  error('units:MissingSpikes','Spikes have not been loaded')
 end
 
 % find regions
