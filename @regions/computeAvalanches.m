@@ -2,7 +2,7 @@ function this = computeAvalanches(this,window,smooth,threshold,event_threshold,o
 % computeAvalanches Compute and store avalanches per region from spiking data
 %
 % arguments:
-%     window             double, time bin (s) for avalanche computation
+%     window             double, time bin (s) for avalanche computation; if zero, average inter-spike interval is used
 %     smooth             double = 1, gaussian kernel std in number of samples, default is no smoothing
 %     threshold          double = 30, percentile of region firing rate for avalanche computation
 %     event_threshold    double = threshold, threshold to use outside sleep events
@@ -24,7 +24,7 @@ function this = computeAvalanches(this,window,smooth,threshold,event_threshold,o
 
 arguments
   this (1,1) regions
-  window (1,1) {mustBeNumeric,mustBePositive}
+  window (1,1) {mustBeNumeric,mustBeNonnegative}
   smooth (1,1) {mustBeNumeric,mustBeGreaterThanOrEqual(smooth,1)} = 1
   threshold (1,1) {mustBeNumeric,mustBeNonnegative} = 30
   event_threshold (1,1) {mustBeNumeric,mustBeNonnegative} = threshold
@@ -33,23 +33,33 @@ arguments
   opt.mode (1,1) string {mustBeMember(opt.mode,["fr","fr_norm","ratio"])} = "fr"
 end
 
-[FR,time] = this.firingRate('all',window=window,step=opt.step,smooth=smooth,mode=opt.mode);
+if window == 0
+  window = this.interSpikeInterval();
+else
+  [FR,time] = this.firingRate('all','window',window,'step',opt.step,'smooth',smooth,'mode',opt.mode);
+end
 
 % detect avalanches on population firing rate
 for i = 1 : numel(this.ids)
-  % threshold firing rate
+  if isscalar(window)
+    this_fr = FR(:,i);
+  else
+    [this_fr,time] = this.firingRate('all',this.ids(i),'window',window(i),'step',opt.step,'smooth',smooth,'mode',opt.mode);
+  end
+
+  % 1. threshold the firing rate
   if opt.perc
     % case 1: percentile threshold
-    profile = percentThreshold(FR(:,i),threshold);
+    profile = percentThreshold(this_fr,threshold);
     if event_threshold ~= threshold
-      profile_task = percentThreshold(FR(:,i),event_threshold);
+      profile_task = percentThreshold(this_fr,event_threshold);
     end
   else
     % case 2: absolute threshold
-    profile = FR(:,i) - threshold;
+    profile = this_fr - threshold;
     profile(profile<0) = 0;
     if event_threshold ~= threshold
-      profile_task = FR(:,i) - event_threshold;
+      profile_task = this_fr - event_threshold;
       profile_task(profile_task<0) = 0;
     end
   end
@@ -60,7 +70,7 @@ for i = 1 : numel(this.ids)
     profile(ind) = profile_task(ind);
   end
 
-  % get avalanches
+  % 2. avalanches
   [sizes,intervals,size_t] = avalanchesFromProfile(profile,time(2)-time(1));
   intervals = intervals + time(1); % avalanchesFromProfile assumes time starts at 0 s, add initial offset
   % save results in region object
