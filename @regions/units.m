@@ -1,5 +1,5 @@
 function [list,regs] = units(this,regs)
-% nNeurons Get pooled list of units for regions
+% units Get pooled list of units for regions
 
 arguments
   this (1,1) regions
